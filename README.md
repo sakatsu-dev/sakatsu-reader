@@ -1,4 +1,4 @@
-# 屠つ (Sakatsu Reader)
+# Sakatsu Reader
 
 A desktop reading aid for Japanese study, built with Rust. Capture text from anywhere on your
 screen, read with furigana, look up words, and explore meanings, conjugations, and grammar as
