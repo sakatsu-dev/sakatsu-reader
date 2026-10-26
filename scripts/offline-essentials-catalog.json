@@ -1,0 +1,51 @@
+{
+  "package_version": "2026.10.18.1",
+  "components": [
+    {
+      "id": "dictionaries",
+      "licences": ["Jitendex and JMnedict — CC BY-SA 4.0, built on JMdict (EDRDG)"],
+      "artifacts": [
+        { "file": "jitendex-yomitan.zip", "bytes": 38831822, "sha256": "e914c76596220dffc6ee0c069cd05992f03adb2988c12c3cebe817a3ac271356" },
+        { "file": "JMnedict.zip", "bytes": 11429637, "sha256": "01a02baed0227135a4ef091a2ed058b9f0ba1168a45b59198a919cd6aced50ef" }
+      ]
+    },
+    {
+      "id": "kanji",
+      "licences": ["KANJIDIC2 — EDRDG, CC BY-SA 4.0; KanjiVG — Ulrich Apel, CC BY-SA 3.0; basic KRADFILE — EDRDG licence"],
+      "artifacts": [
+        { "file": "kanjidic2.xml.gz", "bytes": 1488573, "sha256": "6182a700e08a8f6a6646529b77f84f0d963ed33cd5c7516ff19e4ee642345446" },
+        { "file": "kanjivg-20260714-main.zip", "bytes": 12650667, "sha256": "b5df6cd2bc249dd49b8041eb99e38ba9f8dc6b9ea57962a80084b4a315d1a7fc" },
+        { "file": "kradfile.gz", "bytes": 47301, "sha256": "0c5487c1de77e36ffb5bde652f469f2de9c52efc8320137c115506f3500e9c5f" }
+      ]
+    },
+    {
+      "id": "wordnet",
+      "licences": ["Japanese WordNet — NICT and Francis Bond; Princeton WordNet 3.0. Both BSD-like, attribution required."],
+      "artifacts": [
+        { "file": "wnjpn-ok.tab.gz", "bytes": 1079974, "sha256": "770a3779425b8565d52db9900b49f2ded6526f71b3b996b8f78fb58b5cf52459" },
+        { "file": "WNdb-3.0.tar.gz", "bytes": 10518425, "sha256": "658b1ba191f5f98c2e9bae3e25c186013158f30ef779f191d2a44e5d25046dc8" }
+      ]
+    },
+    {
+      "id": "manga-ocr",
+      "licences": ["manga-ocr — Apache-2.0"],
+      "artifacts": [
+        { "file": "encoder_model.onnx", "bytes": 86967805, "sha256": "a73e7a9959f3412f4d0ab60c8cd0f71c29e7e29a2e52a1e184ad6f2be3b892e3" },
+        { "file": "decoder_model.onnx", "bytes": 29627952, "sha256": "cc7a42534759864c7b6937aaacc4cc91b37c9207eeae05ee359a04e6d4d222a5" },
+        { "file": "vocab.txt", "bytes": 30216, "sha256": "5cb5c5586d98a2f331d9f8828e4586479b0611bfba5d8c3b6dadffc84d6a36a3" },
+        { "file": "config.json", "bytes": 77161, "sha256": "fda165bab7a9cd1b4a0ce57ed9a78e516f101fcd23afd9f58c9e779c9b5ed11b" },
+        { "file": "generation_config.json", "bytes": 273, "sha256": "012bcb0da9625702d55556b6ed20b1da39de5eba707c5c9ee1575336cfc2a804" },
+        { "file": "preprocessor_config.json", "bytes": 376, "sha256": "ee6588147df4bcd5ca13110900697f7b43b64f07da18a4427fa0d88eae857326" }
+      ]
+    },
+    {
+      "id": "paddle-ocr",
+      "licences": ["PP-OCRv6 — Apache-2.0 (PaddlePaddle); ONNX conversion by snowfluke — Apache-2.0"],
+      "artifacts": [
+        { "file": "det.onnx", "bytes": 9880512, "sha256": "d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e" },
+        { "file": "rec.onnx", "bytes": 21159378, "sha256": "5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634" },
+        { "file": "ppocrv6_dict.txt", "bytes": 74948, "sha256": "41557512862dfe31970cf22407742b629725461dd84c0d8771bde9c87c2202c8" }
+      ]
+    }
+  ]
+}

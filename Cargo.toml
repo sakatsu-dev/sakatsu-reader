@@ -1,0 +1,37 @@
+# 屠つ (Sakatsu) — Cargo workspace.
+#
+# `core` is the platform-independent, owned logic (no Tauri, no UI): the analysis
+# model, the Analyzer trait, the grammar engine, dictionaries, translation. A
+# desktop shell (src-tauri) and, later, a mobile app both depend on it. Keeping
+# the logic in one framework-free crate is what makes the future phone app a
+# reuse rather than a rewrite.
+[workspace]
+resolver = "2"
+members = ["core", "src-tauri"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.92"
+license = "GPL-3.0-only"
+
+# How much debug information a dev build carries.
+#
+# **This is the largest single thing `target/` is made of.** Cargo's default for `dev` is
+# full debug info, and on this workspace that meant 15.2 GB of `.pdb` and 10.6 GB of `.o` in
+# `debug/deps` alone — measured, not estimated. `scripts/trim-target.ps1` reclaims what is
+# unreachable, but no amount of collecting keeps up with a profile that produces this much.
+#
+# `line-tables-only` keeps the part anyone actually reads off a panic: the file and the line.
+# What it drops is variable and type information — the data a *step debugger* wants. If you
+# need to inspect locals in a debugger, set this back to `true` for as long as that takes.
+[profile.dev]
+debug = "line-tables-only"
+
+# And nothing at all for dependencies, which are the bulk of it.
+#
+# Nobody steps into `lindera_ipadic` or `ort-sys`, and those are exactly the crates whose
+# artifacts run to 315 MB apiece. Backtraces still name our own frames, because the setting
+# above governs the workspace's own code.
+[profile.dev.package."*"]
+debug = false

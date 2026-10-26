@@ -1,0 +1,15 @@
+# Builds SudachiDict 20260723 into Lindera's compiled format for the analyzer comparison in
+# local documentation. Standalone: not a member of the app's workspace, and nothing the app
+# ships depends on it.
+[package]
+name = "build-sudachidict"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+lindera = { version = "=6.2.0", default-features = false }
+lindera-dictionary = { version = "=6.2.0", default-features = false }
+serde_json = "1"

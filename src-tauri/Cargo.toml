@@ -1,0 +1,127 @@
+[package]
+name = "sakatsu-desktop"
+description = "屠つ (Sakatsu) — desktop shell"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+# **Names the app binary, because this package now has two.** Adding `resolve-resources` made
+# `cargo run` ambiguous, and `cargo tauri dev` runs exactly that — so the dev command this project
+# is driven by stopped working the moment a second bin appeared. It failed loudly rather than
+# subtly, which is the only good thing about it.
+default-run = "sakatsu-desktop"
+
+# Tauri's convention: a library with `run()` that both the desktop binary and a
+# future mobile entry point call, so the app logic is shared across targets.
+[lib]
+name = "sakatsu_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Managed PaddleOCR-VL readiness asks the app-owned llama.cpp server for its model list. This is
+# the same HTTP client already used by the core; JSON only here, while features unify with
+# core's rustls.
+ureq = { version = "3.2.1", default-features = false, features = ["json"] }
+# The owned, platform-independent core. The shell is a thin adapter over it.
+sakatsu-core = { path = "../core" }
+# Screen capture for the region-select overlay.
+xcap = "0.9.7"
+# The capture hotkey, which has to work while another application has focus.
+tauri-plugin-global-shortcut = "2.3.2"
+# One copy of the reader at a time. Two racing for the same global chords is what left the
+# switch binding unregistered while the settings drawer went on displaying it.
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+# Decoding image files the user picks. Only the formats a screenshot or a scan
+# actually arrives in — the default feature set drags in far more.
+image = { version = "0.25.6", default-features = false, features = [
+  "png",
+  "jpeg",
+  "webp",
+  "bmp",
+  "gif",
+] }
+# Reading the clipboard: a copied image to recognize, or text to analyse directly.
+arboard = "3.6.1"
+# Cross-platform free-space queries for setup preflight. This uses GetDiskFreeSpaceEx on
+# Windows and keeps the policy calculation independent of a shell command.
+fs2 = "0.4.3"
+sha2 = "0.11.0"
+base64 = "0.23.0"
+zip = { version = "9.0.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+tauri-plugin-updater = "=2.14.0"
+minisign = "0.10"
+
+[dev-dependencies]
+image = { version = "0.25.6", default-features = false, features = ["png"] }
+# `test` pulls in no extra crates; it unlocks tauri::test's MockRuntime so the IPC
+# boundary — command names and argument names, which the UI hard-codes as strings
+# — is exercised for real, without needing a webview.
+tauri = { version = "2", features = ["test"] }
+
+# The mouse binding needs a low-level hook; there is no mouse support in the
+# global-shortcut plugin. Already in the tree via Tauri, so this adds no new transitive
+# weight — only the two feature groups the hook actually calls into.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  # GetClipboardSequenceNumber, for the clipboard watcher: it answers "did anything
+  # change" without taking the clipboard lock, which is what keeps the watcher from
+  # fighting the text hooker it exists to listen to.
+  "Win32_System_DataExchange",
+  # GetCurrentThreadId, so the mouse-hook owner can wake its message loop with WM_QUIT
+  # and join it during a rebind instead of leaving detached hook threads behind.
+  "Win32_System_Threading",
+  # GetProcessMemoryInfo, for the peak-memory measurement. The counter is a *process*
+  # high-water mark, which is why it is measured in isolated runs rather than around a
+  # call: see src-tauri/tests/peak_memory.rs.
+  "Win32_System_ProcessStatus",
+  # The app's own title bar. It draws its own caption buttons and parks a child window over
+  # the maximise button to answer WM_NCHITTEST with HTMAXBUTTON, which is what keeps Windows
+  # 11's snap-layout flyout working. See src/titlebar.rs for why it has to be a child window.
+  #
+  # GetModuleHandleW, for the window class the overlay is created from.
+  "Win32_System_LibraryLoader",
+  # SetWindowSubclass, to learn when the window is resized or changes monitor.
+  "Win32_UI_Shell",
+  # TrackMouseEvent with TME_NONCLIENT, or the pointer never reports leaving the overlay.
+  "Win32_UI_Input_KeyboardAndMouse",
+  # GetDpiForWindow: the constants are logical and SetWindowPos wants physical.
+  "Win32_UI_HiDpi",
+  # NULL_BRUSH, which is what keeps the overlay from erasing the button underneath it.
+  "Win32_Graphics_Gdi",
+  # Setup downloads use the Windows transfer service first: its persisted jobs survive app
+  # restarts, sleep and network changes, and inherit Windows proxy policy.
+  "Win32_Networking_BackgroundIntelligentTransferService",
+  "Win32_System_Com",
+  # RtlGetVersion, for the version line of the diagnostic report. GetVersionEx answers with
+  # whatever the manifest claims compatibility with; this answers with the real version.
+  "Wdk_System_SystemServices",
+  "Win32_System_SystemInformation",
+] }
+
+[features]
+default = ["developer-tools"]
+developer-tools = []
+
+[[bin]]
+name = "checkpoint-fixture"
+path = "src/tools/checkpoint-fixture.rs"
+required-features = ["developer-tools"]
+
+[[bin]]
+name = "resolve-resources"
+path = "src/tools/resolve-resources.rs"
+required-features = ["developer-tools"]
+
+[[bin]]
+name = "verify-release"
+path = "src/tools/verify-release.rs"
+required-features = ["developer-tools"]

@@ -1,0 +1,30 @@
+{
+  "name": "sakatsu-ui",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check:layout": "node scripts/run-layout-tests.mjs",
+    "check": "node scripts/run-unit-tests.mjs && svelte-check --tsconfig ./tsconfig.json",
+    "check:format": "prettier --check \"src/**/*.{ts,js,mjs,svelte,css}\" \"tests/**/*.ts\" \"scripts/**/*.mjs\""
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-dialog": "^2.8.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tsconfig/svelte": "^5",
+    "prettier": "3.9.10",
+    "prettier-plugin-svelte": "4.1.1",
+    "svelte": "^5.57.2",
+    "svelte-check": "^4.7.7",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4"
+  }
+}

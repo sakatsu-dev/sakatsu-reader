@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "../scripts/fetch-dictionaries.ps1": "scripts/fetch-dictionaries.ps1",
+      "../scripts/fetch-frequency-bccwj.ps1": "scripts/fetch-frequency-bccwj.ps1",
+      "../scripts/fetch-frequency-jpdb.ps1": "scripts/fetch-frequency-jpdb.ps1",
+      "../scripts/fetch-kanjidic.ps1": "scripts/fetch-kanjidic.ps1",
+      "../scripts/fetch-ocr-model.ps1": "scripts/fetch-ocr-model.ps1",
+      "../scripts/fetch-paddle-ocr.ps1": "scripts/fetch-paddle-ocr.ps1",
+      "../scripts/fetch-pronunciation.ps1": "scripts/fetch-pronunciation.ps1",
+      "../scripts/fetch-translation-model.ps1": "scripts/fetch-translation-model.ps1",
+      "../scripts/fetch-wordnet.ps1": "scripts/fetch-wordnet.ps1",
+      "../scripts/setup-ichiran.ps1": "scripts/setup-ichiran.ps1",
+      "windows-runtime/msvcp140.dll": "msvcp140.dll",
+      "windows-runtime/msvcp140_1.dll": "msvcp140_1.dll",
+      "windows-runtime/vcruntime140.dll": "vcruntime140.dll",
+      "windows-runtime/vcruntime140_1.dll": "vcruntime140_1.dll"
+    }
+  }
+}

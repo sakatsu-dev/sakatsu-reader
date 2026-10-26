@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Embedded into this crate's *test* binaries by build.rs. See the comment there:
+  without a Common-Controls 6 dependency, the loader binds a test exe to
+  comctl32 v5.82, which lacks the v6-only exports Tauri imports
+  (TaskDialogIndirect, SetWindowSubclass, ...), and the process dies at startup
+  with STATUS_ENTRYPOINT_NOT_FOUND before any test runs.
+
+  The real app binary gets an equivalent manifest from tauri-build.
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity
+        type="win32"
+        name="Microsoft.Windows.Common-Controls"
+        version="6.0.0.0"
+        processorArchitecture="*"
+        publicKeyToken="6595b64144ccf1df"
+        language="*"
+      />
+    </dependentAssembly>
+  </dependency>
+</assembly>

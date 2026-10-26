@@ -1,0 +1,119 @@
+[package]
+name = "sakatsu-core"
+description = "屠つ (Sakatsu) — platform-independent Japanese analysis core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+# Timestamps for the optional log file, and nothing else. Already compiled in this tree
+# through Tauri, so taking it directly costs no build time — and hand-rolling a civil-date
+# conversion to avoid one line of `format` would be the wrong trade.
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# Gzip, for the two setup downloads that arrive compressed (KANJIDIC2 and the WordNet
+# halves). Already in this tree behind `zip`'s deflate backend, so taking it directly
+# costs no build time — the same trade as `chrono` below.
+flate2 = "1.1.9"
+# KRADFILE is intentionally the basic, EDRDG-licensed EUC-JP file. Decode it
+# explicitly instead of trusting the machine's active code page.
+encoding_rs = "0.8.35"
+# Mostly imageops: grayscale, and the resizes the engines and `ocr::preprocess` need.
+# Getting a resize subtly wrong would quietly degrade recognition accuracy, so a proven
+# one is worth the dependency.
+#
+# `png` is for *encoding*, not decoding — `ocr::vlm` sends the crop to a model over HTTP
+# and has to hand it a real image. Decoding files remains the shell's job, which is why
+# there is no `jpeg` or `webp` here.
+image = { version = "0.25.6", default-features = false, features = ["png"] }
+# Contour tracing for PP-OCRv5's detection output. Pure Rust, and the reason this does
+# not need OpenCV: the only other piece DBNet post-processing wants is a rotated-rect
+# fit, which `ocr::paddle::geometry` does with rotating calipers in a few dozen lines.
+imageproc = { version = "0.27", default-features = false }
+lindera = { version = "6.2.0", default-features = false, features = ["embed-unidic"] }
+md-5 = { version = "0.11.0", default-features = false }
+# ONNX Runtime, for OCR now and translation later. `project notes` §2 chose this over
+# Python/torch so the models run in-process and Ichiran stays the only sidecar.
+#
+# Pinned to an exact release candidate: `ort` 2.0 has not shipped a stable version,
+# and rc-to-rc changes are not semver-protected. `download-binaries` fetches the
+# runtime at build time rather than requiring a system install.
+#
+# Default features, deliberately: they are exactly `std`, `ndarray`, `tracing`,
+# `download-binaries`, `tls-native`, `copy-dylibs` and the API level (`api-31` from rc.14,
+# ONNX Runtime 1.31). Trimming them breaks the build — `ndarray` needs `std`, and
+# `download-binaries` needs a TLS provider — for no gain.
+ort = "=2.0.0-rc.14"
+# KANJIDIC2 is XML, and the app builds its reading table itself rather than making a
+# learner run a script. Hand-rolling a scanner over 15 MB of someone else's format is
+# the kind of thing that breaks quietly on an upstream change, which is the same
+# argument `image` is here on.
+quick-xml = "0.42"
+# The analysis model crosses the Tauri IPC boundary as JSON, so the types are
+# serde-serializable from the start.
+serde = { version = "1", features = ["derive"] }
+# Ichiran speaks JSON; parsing its output is core's job, not the shell's.
+serde_json = "1"
+# Exact pronunciation-pack keys are Unicode-normalised before indexing and lookup, so
+# canonically equivalent kana cannot create two recordings for one word.
+unicode-normalization = "0.1.24"
+# FuguMT is a Marian model, so it tokenizes with SentencePiece. Its export ships a
+# `tokenizer.json` in the fast-tokenizer format, which this crate loads directly —
+# which is why no SentencePiece dependency (and no C++ toolchain) is needed.
+tokenizers = { version = "0.23.1", default-features = false, features = ["onig"] }
+# ichi.moe has no API, so the online analyzer reads its HTML. A real parser rather than a
+# hand-rolled scanner for the reason `quick-xml` is here: a scanner over someone else's
+# format breaks quietly on an upstream change — and this format is one nobody has promised
+# to keep stable, so the failure has to be loud when it comes.
+# Two callers: AnkiConnect on loopback (plain HTTP) and the word-audio endpoint
+# (HTTPS, hence `rustls`). rustls rather than native-tls so the Linux build needs no
+# OpenSSL — the same reasoning as `ort`'s TLS choice.
+ureq = { version = "3.2.1", default-features = false, features = [
+  "json",
+  "platform-verifier",
+  "rustls",
+  "win-system-proxy",
+] }
+# Required setup artifacts are pinned to immutable upstream revisions and checked before
+# publication. SHA-256 is deliberately separate from the dictionary/content hashes used
+# elsewhere: this protects a transfer, it does not identify a dictionary entry.
+sha2 = "0.11.0"
+# Princeton WordNet ships as a tar.gz and the app needs one file out of it. Pure Rust,
+# already in the tree via `ort`'s binary download.
+tar = "0.4.46"
+# Yomitan dictionaries are zips of JSON. Only deflate is needed (that is what they
+# use), and `deflate-flate2-zlib-rs` is the pure-Rust backend — no C toolchain, and
+# none of the encryption/zstd/xz machinery a dictionary reader has no use for.
+zip = { version = "9.0.0", default-features = false, features = [
+  "deflate-flate2-zlib-rs",
+] }
+# Generates the TypeScript declarations the reader programs against. **Optional and pinned
+# exactly**: it is a build-time contract tool, not something a release should carry, and a caret
+# range on a code generator means the generated file can move without anything in this repository
+# changing. See `core/src/bin/generate-bindings.rs`.
+ts-rs = { version = "=12.0.1", optional = true }
+
+[dev-dependencies]
+# Decoding, for tests only. `png` is what the rendered fixtures use; `jpeg` and `webp` are
+# so a corpus screenshot can be dropped in whatever format it was saved as rather than
+# having to be converted first.
+image = { version = "0.25.6", default-features = false, features = [
+  "png",
+  "jpeg",
+  "webp",
+] }
+
+[[bin]]
+name = "generate-bindings"
+# Kept out of an ordinary build entirely: without the feature there is nothing for it to call.
+required-features = ["typescript"]
+
+[features]
+# **TypeScript declaration generation, and nothing else.** The `TS` derives are behind this, so a
+# shipped build carries none of the generation machinery: it exists to produce `ui/src/bindings.ts`
+# and to check that the tracked copy still matches what the Rust types say.
+#
+# Off by default, which means an ordinary `cargo test --workspace` compiles none of it — so the
+# verification workflow runs the contract test with the feature named explicitly. A feature nobody
+# builds is a feature that has quietly stopped compiling, and this one is a contract.
+typescript = ["dep:ts-rs"]

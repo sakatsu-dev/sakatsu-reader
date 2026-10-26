@@ -1,0 +1,137 @@
+{
+  "name": {
+    "word": {
+      "headword": "セイア",
+      "reading": "せいあ",
+      "inline": [],
+      "inline_source": "JMnedict",
+      "inline_retrieved": {
+        "kind": "unknown"
+      },
+      "also_in": [],
+      "examples": [],
+      "name": {
+        "glosses": [
+          "Seia"
+        ],
+        "tags": [
+          "fem",
+          "given"
+        ],
+        "source": "JMnedict",
+        "retrieved": {
+          "kind": "whole",
+          "query": "セイア"
+        },
+        "leads": true
+      },
+      "likely_name": false,
+      "romaji": null
+    },
+    "ranking": {
+      "senses": [],
+      "favoured": null
+    }
+  },
+  "ordinary": {
+    "word": {
+      "headword": "伝わる",
+      "reading": "つたわる",
+      "inline": [
+        {
+          "tags": [
+            "v5r",
+            "vi"
+          ],
+          "glosses": [
+            "to be handed down",
+            "to be passed down"
+          ],
+          "sequence": 1234567
+        },
+        {
+          "tags": [],
+          "glosses": [
+            "to spread"
+          ],
+          "sequence": null
+        }
+      ],
+      "inline_source": null,
+      "inline_retrieved": {
+        "kind": "component",
+        "query": "伝"
+      },
+      "also_in": [
+        {
+          "title": "Jitendex.org",
+          "retrieved": {
+            "kind": "whole",
+            "query": "伝わる"
+          },
+          "senses": [
+            {
+              "tags": [
+                "col"
+              ],
+              "glosses": [
+                "to get through"
+              ],
+              "sequence": null
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "japanese": "気持ちが伝わってきます。",
+          "english": "The feeling comes across.",
+          "retrieved": {
+            "kind": "component",
+            "query": "伝"
+          }
+        }
+      ],
+      "name": null,
+      "likely_name": false,
+      "romaji": null
+    },
+    "ranking": {
+      "senses": [
+        {
+          "original_index": 1,
+          "score": 3,
+          "reasons": [
+            "the verb is intransitive here"
+          ]
+        },
+        {
+          "original_index": 0,
+          "score": 0,
+          "reasons": []
+        }
+      ],
+      "favoured": 0
+    }
+  },
+  "unknown_katakana": {
+    "word": {
+      "headword": "シロコ",
+      "reading": null,
+      "inline": [],
+      "inline_source": null,
+      "inline_retrieved": {
+        "kind": "unknown"
+      },
+      "also_in": [],
+      "examples": [],
+      "name": null,
+      "likely_name": true,
+      "romaji": "shiroko"
+    },
+    "ranking": {
+      "senses": [],
+      "favoured": null
+    }
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "words": [
+    {
+      "headword": "伝わる",
+      "reading": "つたわる",
+      "inline": [
+        {
+          "tags": [
+            "v5r",
+            "vi"
+          ],
+          "glosses": [
+            "to be handed down",
+            "to be passed down"
+          ],
+          "sequence": 1234567
+        },
+        {
+          "tags": [],
+          "glosses": [
+            "to spread"
+          ],
+          "sequence": null
+        }
+      ],
+      "inline_source": null,
+      "inline_retrieved": {
+        "kind": "component",
+        "query": "伝"
+      },
+      "also_in": [
+        {
+          "title": "Jitendex.org",
+          "retrieved": {
+            "kind": "whole",
+            "query": "伝わる"
+          },
+          "senses": [
+            {
+              "tags": [
+                "col"
+              ],
+              "glosses": [
+                "to get through"
+              ],
+              "sequence": null
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "japanese": "気持ちが伝わってきます。",
+          "english": "The feeling comes across.",
+          "retrieved": {
+            "kind": "component",
+            "query": "伝"
+          }
+        }
+      ],
+      "name": null,
+      "likely_name": false,
+      "romaji": null,
+      "forms": [
+        {
+          "text": "alternate",
+          "rare": true
+        }
+      ],
+      "chars": [
+        {
+          "character": "市",
+          "on": [
+            {
+              "text": "シジョウ",
+              "here": true
+            }
+          ],
+          "kun": [
+            {
+              "text": "いち",
+              "here": false
+            }
+          ],
+          "nanori": [
+            "name reading"
+          ],
+          "meanings": [
+            "market"
+          ],
+          "strokes": 5,
+          "grade": 2,
+          "components": [
+            "part"
+          ],
+          "irregular": false
+        }
+      ],
+      "ranking": {
+        "senses": [
+          {
+            "original_index": 1,
+            "score": 3,
+            "reasons": [
+              "the verb is intransitive here"
+            ]
+          },
+          {
+            "original_index": 0,
+            "score": 0,
+            "reasons": []
+          }
+        ],
+        "favoured": 0
+      },
+      "surface": "query"
+    },
+    {
+      "headword": "シロコ",
+      "reading": null,
+      "inline": [],
+      "inline_source": null,
+      "inline_retrieved": {
+        "kind": "unknown"
+      },
+      "also_in": [],
+      "examples": [],
+      "name": null,
+      "likely_name": true,
+      "romaji": "shiroko",
+      "forms": [],
+      "chars": [
+        {
+          "character": "市",
+          "on": [],
+          "kun": [],
+          "nanori": [],
+          "meanings": [],
+          "strokes": 0,
+          "grade": null,
+          "components": [],
+          "irregular": true
+        }
+      ],
+      "ranking": null,
+      "surface": null
+    }
+  ],
+  "japanese": true,
+  "ranked_by": "fixture",
+  "needs_gloss_index": false,
+  "capped": false
+}

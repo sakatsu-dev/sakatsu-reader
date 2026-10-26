@@ -1,0 +1,141 @@
+# CI for 屠つ (Sakatsu).
+#
+# Runs exactly the checks DEVELOPMENT.md tells you to run locally, so green locally
+# means green here. Split by what each platform actually proves:
+#
+#   core    — sakatsu-core on Linux with no webview system libraries installed.
+#             That is what *proves* the core stayed platform-independent, which
+#             the future mobile app depends on (project notes §2).
+#   desktop — the full workspace on Windows, the primary target: the Tauri IPC
+#             tests and the wire-format golden. (Tauri on Linux would need
+#             libwebkit2gtk et al; not worth it while Windows is the platform.)
+#   ui      — unit tests, svelte-check, the Rust/TypeScript golden, and the strict
+#             production build whose unused-selector diagnostic is fatal.
+#   layout  — deterministic Analysis geometry and screenshots in system Edge on Windows.
+#
+# rustfmt is deliberately not enforced: the existing sources predate it and
+# adopting it would reformat unrelated code. Add `cargo fmt --all --check` here
+# once you have run `cargo fmt --all` in a commit of its own.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  core:
+    name: core (linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-core-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-core-
+
+      # -p sakatsu-core, not --workspace: pulling in src-tauri here would defeat the
+      # point of this job, and would also drag in xcap and arboard, which need X11
+      # development headers this runner does not have.
+      #
+      # Two things make this job slower than it looks: `ort` downloads an ONNX Runtime
+      # build at compile time (so the job needs network, not just the crates index),
+      # and `tokenizers`' oniguruma backend compiles C. Both land in the cache above.
+      #
+      # The tests that need Ichiran, a dictionary or a model are all `#[ignore]`d, so
+      # this runs the hermetic suite only. They still have to *compile* here, which is
+      # why nothing platform-specific may leak into core.
+      - run: cargo test -p sakatsu-core
+      - run: cargo test -p sakatsu-core --features typescript --test typescript_contract
+      - run: cargo clippy -p sakatsu-core --features typescript --all-targets -- -D warnings
+      - run: cargo clippy -p sakatsu-core --all-targets -- -D warnings
+
+  desktop:
+    name: desktop (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      # No frontend build first: debug builds serve `devUrl`, so ui/dist (which is
+      # gitignored) is not needed to compile or test.
+      # The Windows config bundles the C++ runtime DLLs, which are generated rather than committed;
+      # tauri-build will not compile the desktop crate until they exist.
+      - run: node scripts/stage-vc-runtime.mjs
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  ui:
+    name: ui (checks/build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - run: npm ci
+      # Type-checks the app *and* model.contract.ts, which fails if model.ts has
+      # drifted from model.golden.json in either direction.
+      - run: npm run check
+      # Prettier, over every file `.prettierignore` does not list. The list is a ratchet: files
+      # that predate the check leave it when they are formatted on purpose, and nothing joins it.
+      - run: npm run check:format
+      - run: npm run build
+
+  layout:
+    name: analysis layout (edge/windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      # Edge is part of the Windows runner. Playwright supplies only the harness; no second
+      # browser is downloaded or cached.
+      - run: npm ci
+      - run: npm run check:layout
+
+      - name: Upload layout diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-layout-${{ github.run_id }}
+          path: |
+            ui/test-results
+            ui/playwright-report
+          if-no-files-found: ignore

@@ -1,0 +1,569 @@
+{
+ "about": "Same-source contrast set: Tatoeba sentences with two human translations; see README.md. Excluded items stay, with the reason; the validation reports the active set.",
+ "items": [
+  {
+   "tatoeba_jpn": "93585",
+   "kind": "number",
+   "a_sha256_16": "0160e18bd9cdcd23",
+   "b_sha256_16": "06863184129b2763",
+   "corrupt": [
+    "age of 20",
+    "age of 30"
+   ]
+  },
+  {
+   "tatoeba_jpn": "8002489",
+   "kind": "number",
+   "a_sha256_16": "14d79aac048591f1",
+   "b_sha256_16": "7acfc29452a3c55f",
+   "corrupt": [
+    "three hours",
+    "five hours"
+   ]
+  },
+  {
+   "tatoeba_jpn": "1568240",
+   "kind": "number",
+   "a_sha256_16": "b4c912d1cd6cdcdd",
+   "b_sha256_16": "f2a04013a66eb986",
+   "corrupt": [
+    "three empty rooms",
+    "two empty rooms"
+   ]
+  },
+  {
+   "tatoeba_jpn": "213085",
+   "kind": "number",
+   "a_sha256_16": "f558c3d7ad5c6dd0",
+   "b_sha256_16": "bcaf8533ae962248",
+   "corrupt": [
+    "two tickets",
+    "four tickets"
+   ]
+  },
+  {
+   "tatoeba_jpn": "125839",
+   "kind": "number",
+   "a_sha256_16": "23fc46410a4a2150",
+   "b_sha256_16": "b55309916bbacb5f",
+   "corrupt": [
+    "six hours",
+    "four hours"
+   ]
+  },
+  {
+   "tatoeba_jpn": "80538",
+   "kind": "number",
+   "a_sha256_16": "a37040272986d8b1",
+   "b_sha256_16": "8ebad11bcffb4aaf",
+   "corrupt": [
+    "at six",
+    "at seven"
+   ]
+  },
+  {
+   "tatoeba_jpn": "82345",
+   "kind": "number",
+   "a_sha256_16": "deafa02051fa94f3",
+   "b_sha256_16": "4e8d418f8c84f84d",
+   "corrupt": [
+    "thirty years",
+    "twenty years"
+   ]
+  },
+  {
+   "tatoeba_jpn": "235165",
+   "kind": "number",
+   "a_sha256_16": "8dae3e8bea1909d3",
+   "b_sha256_16": "d4c51938b4eb7eb0",
+   "corrupt": [
+    "aged 54",
+    "aged 45"
+   ]
+  },
+  {
+   "tatoeba_jpn": "222995",
+   "kind": "number",
+   "a_sha256_16": "f2528cd27c32c815",
+   "b_sha256_16": "cf3861603f76aa3f",
+   "corrupt": [
+    "200 yen",
+    "300 yen"
+   ]
+  },
+  {
+   "tatoeba_jpn": "9963993",
+   "kind": "number",
+   "a_sha256_16": "9c15eba23a7b62f9",
+   "b_sha256_16": "a6cba134a9eff160",
+   "corrupt": [
+    "Two years ago",
+    "Three years ago"
+   ]
+  },
+  {
+   "tatoeba_jpn": "95269",
+   "kind": "negation",
+   "a_sha256_16": "bac2737bec13e47f",
+   "b_sha256_16": "13ca558259a31735",
+   "corrupt": [
+    "She doesn't need to work",
+    "She needs to work"
+   ]
+  },
+  {
+   "tatoeba_jpn": "187501",
+   "kind": "negation",
+   "a_sha256_16": "a49dde195ea56740",
+   "b_sha256_16": "4b12fc3bae8a9678",
+   "corrupt": [
+    "I won't change my mind",
+    "I will change my mind"
+   ]
+  },
+  {
+   "tatoeba_jpn": "82132",
+   "kind": "negation",
+   "a_sha256_16": "cb3f46167f5ce497",
+   "b_sha256_16": "f229a2739a724ce6",
+   "corrupt": [
+    "I have no intention of asking him",
+    "I have every intention of asking him"
+   ]
+  },
+  {
+   "tatoeba_jpn": "217432",
+   "kind": "negation",
+   "a_sha256_16": "5e085abcad3e95cc",
+   "b_sha256_16": "a58ade2e7a990228",
+   "corrupt": [
+    "I've never been this happy",
+    "I've often been this happy"
+   ]
+  },
+  {
+   "tatoeba_jpn": "78447",
+   "kind": "negation",
+   "a_sha256_16": "4d586fdcdda119c8",
+   "b_sha256_16": "76df9863e68d5635",
+   "corrupt": [
+    "the ship couldn't leave port",
+    "the ship left port"
+   ]
+  },
+  {
+   "tatoeba_jpn": "231937",
+   "kind": "negation",
+   "a_sha256_16": "12cdc1107f044bdd",
+   "b_sha256_16": "e9396f58bb390fb4",
+   "corrupt": [
+    "You are not as short as I",
+    "You are as short as I"
+   ]
+  },
+  {
+   "tatoeba_jpn": "218082",
+   "kind": "negation",
+   "a_sha256_16": "4d7b179e8e9b774c",
+   "b_sha256_16": "d7e82e3fe45ede12",
+   "corrupt": [
+    "This may not be a real diamond",
+    "This may be a real diamond"
+   ],
+   "status": "excluded",
+   "excluded_on": "2026-10-13",
+   "why": "'may not be genuine' against 'may be genuine' is a change of emphasis, not true against false: both possibilities can hold at once",
+   "replaced_by": "1200175"
+  },
+  {
+   "tatoeba_jpn": "1200175",
+   "kind": "negation",
+   "a_sha256_16": "998e427ebadab918",
+   "b_sha256_16": "2e26339447da335c",
+   "corrupt": [
+    "I don't want to go alone",
+    "I want to go alone"
+   ],
+   "added_on": "2026-10-13",
+   "replaces": "218082"
+  },
+  {
+   "tatoeba_jpn": "204294",
+   "kind": "negation",
+   "a_sha256_16": "41af56e2e3535d38",
+   "b_sha256_16": "b7f243dab6f9ea3e",
+   "corrupt": [
+    "We didn't need to eat breakfast",
+    "We needed to eat breakfast"
+   ]
+  },
+  {
+   "tatoeba_jpn": "172615",
+   "kind": "negation",
+   "a_sha256_16": "0f2319a452c8b877",
+   "b_sha256_16": "b2d13bc9460d6cf8",
+   "corrupt": [
+    "I never have had occasion",
+    "I often have had occasion"
+   ]
+  },
+  {
+   "tatoeba_jpn": "9834655",
+   "kind": "negation",
+   "a_sha256_16": "a86aa8443ffb515e",
+   "b_sha256_16": "f1621985c950698c",
+   "corrupt": [
+    "I don't need your sympathy",
+    "I need your sympathy"
+   ]
+  },
+  {
+   "tatoeba_jpn": "8935835",
+   "kind": "entity",
+   "a_sha256_16": "c6d2ed8224087ba1",
+   "b_sha256_16": "f67f453eee3312ce",
+   "corrupt": [
+    "Tom",
+    "John"
+   ]
+  },
+  {
+   "tatoeba_jpn": "3464963",
+   "kind": "entity",
+   "a_sha256_16": "0072d9f36fe3808e",
+   "b_sha256_16": "a92e4214fe463008",
+   "corrupt": [
+    "Japan",
+    "Chile"
+   ]
+  },
+  {
+   "tatoeba_jpn": "2519139",
+   "kind": "entity",
+   "a_sha256_16": "f53a119ca418d7a5",
+   "b_sha256_16": "dac62b37a373e03b",
+   "corrupt": [
+    "Mary",
+    "Alice"
+   ]
+  },
+  {
+   "tatoeba_jpn": "215886",
+   "kind": "entity",
+   "a_sha256_16": "a625779528e3ee40",
+   "b_sha256_16": "610c267b4b84a91e",
+   "corrupt": [
+    "Japan",
+    "Korea"
+   ]
+  },
+  {
+   "tatoeba_jpn": "10618141",
+   "kind": "entity",
+   "a_sha256_16": "0a26cd9cf5faccce",
+   "b_sha256_16": "0a8ad402002f72dd",
+   "corrupt": [
+    "Mary",
+    "Lucy"
+   ]
+  },
+  {
+   "tatoeba_jpn": "2746962",
+   "kind": "entity",
+   "a_sha256_16": "79b0f2394a283e3d",
+   "b_sha256_16": "868c7e74c95392e3",
+   "corrupt": [
+    "Japan",
+    "Nepal"
+   ]
+  },
+  {
+   "tatoeba_jpn": "154879",
+   "kind": "entity",
+   "a_sha256_16": "be6f5df3727d8312",
+   "b_sha256_16": "d7c886292a858061",
+   "corrupt": [
+    "Tokyo",
+    "Osaka"
+   ]
+  },
+  {
+   "tatoeba_jpn": "10060441",
+   "kind": "entity",
+   "a_sha256_16": "e5622e48bb22f297",
+   "b_sha256_16": "58c376a0c99ed649",
+   "corrupt": [
+    "Tom",
+    "Ken"
+   ]
+  },
+  {
+   "tatoeba_jpn": "12771430",
+   "kind": "entity",
+   "a_sha256_16": "40b5acc232f088c3",
+   "b_sha256_16": "06d0836e4915b6ed",
+   "corrupt": [
+    "Tom's",
+    "Bill's"
+   ]
+  },
+  {
+   "tatoeba_jpn": "9964050",
+   "kind": "entity",
+   "a_sha256_16": "e627e895f64f6849",
+   "b_sha256_16": "506fe50341df920f",
+   "corrupt": [
+    "Tom",
+    "Jack"
+   ]
+  },
+  {
+   "tatoeba_jpn": "82634",
+   "kind": "referent",
+   "a_sha256_16": "681f3d7ba449c9a9",
+   "b_sha256_16": "4ac3b6ffb1902af5",
+   "corrupt": [
+    "Before you go to visit him, you should make sure he's at home",
+    "Before he goes to visit you, he should make sure you're at home"
+   ]
+  },
+  {
+   "tatoeba_jpn": "225508",
+   "kind": "referent",
+   "a_sha256_16": "ef8192f1d3101996",
+   "b_sha256_16": "dcc71cb57b2ea381",
+   "corrupt": [
+    "Beth will not allow Chris to kiss her because he is",
+    "Chris will not allow Beth to kiss him because she is"
+   ]
+  },
+  {
+   "tatoeba_jpn": "81131",
+   "kind": "referent",
+   "a_sha256_16": "a3ec43c1732bf56f",
+   "b_sha256_16": "32a3e3ab6ea0b33a",
+   "corrupt": [
+    "tell him I am busy",
+    "tell him you are busy"
+   ]
+  },
+  {
+   "tatoeba_jpn": "100950",
+   "kind": "referent",
+   "a_sha256_16": "f2a942959ceeae3d",
+   "b_sha256_16": "f2a143d8ccfeb8aa",
+   "corrupt": [
+    "He is in a rage with her",
+    "She is in a rage with him"
+   ]
+  },
+  {
+   "tatoeba_jpn": "92470",
+   "kind": "referent",
+   "a_sha256_16": "d0209a5ec81cf693",
+   "b_sha256_16": "229bb6b921e2ba96",
+   "corrupt": [
+    "She assigned him",
+    "He assigned her"
+   ]
+  },
+  {
+   "tatoeba_jpn": "106498",
+   "kind": "referent",
+   "a_sha256_16": "992dbfde66684944",
+   "b_sha256_16": "e1555da4cdb9b964",
+   "corrupt": [
+    "He dared to propose to her",
+    "She dared to propose to him"
+   ]
+  },
+  {
+   "tatoeba_jpn": "94738",
+   "kind": "referent",
+   "a_sha256_16": "14521ece7c98cc90",
+   "b_sha256_16": "353ded75ea0b2aed",
+   "corrupt": [
+    "Because of her, he lived",
+    "Because of him, she lived"
+   ]
+  },
+  {
+   "tatoeba_jpn": "120771",
+   "kind": "referent",
+   "a_sha256_16": "1d1dc86f8fad7be7",
+   "b_sha256_16": "77b0b57425195858",
+   "corrupt": [
+    "what excuse he gives me, I can't forgive him",
+    "what excuse I give him, he can't forgive me"
+   ]
+  },
+  {
+   "tatoeba_jpn": "2269249",
+   "kind": "referent",
+   "a_sha256_16": "13c4be67f8b313b8",
+   "b_sha256_16": "570843e1217aa690",
+   "corrupt": [
+    "Tom loved Mary, but she didn't like him",
+    "Mary loved Tom, but he didn't like her"
+   ],
+   "status": "excluded",
+   "excluded_on": "2026-10-13",
+   "why": "reference A says 'didn't like him' where the Japanese denies love, so A already changes the meaning before the participant swap",
+   "replaced_by": "93081"
+  },
+  {
+   "tatoeba_jpn": "93081",
+   "kind": "referent",
+   "a_sha256_16": "bebb45229df7739f",
+   "b_sha256_16": "8c4c86fd29777a0a",
+   "corrupt": [
+    "She is less beautiful than her sister",
+    "Her sister is less beautiful than she is"
+   ],
+   "added_on": "2026-10-13",
+   "replaces": "2269249"
+  },
+  {
+   "tatoeba_jpn": "91532",
+   "kind": "referent",
+   "a_sha256_16": "641cfc59181ece89",
+   "b_sha256_16": "101302651e0302a0",
+   "corrupt": [
+    "She has asked the man at the hotel desk to get her",
+    "The man at the hotel desk has asked her to get him"
+   ],
+   "status": "excluded",
+   "excluded_on": "2026-10-13",
+   "why": "reference A asks the clerk to get the number, where the Japanese asks to be connected to it, and makes the clerk male without support",
+   "replaced_by": "1245022"
+  },
+  {
+   "tatoeba_jpn": "1245022",
+   "kind": "referent",
+   "a_sha256_16": "4425dd55d0f790bc",
+   "b_sha256_16": "9993527c0aede83d",
+   "corrupt": [
+    "She was trying to creep up on me",
+    "I was trying to creep up on her"
+   ],
+   "added_on": "2026-10-13",
+   "replaces": "91532"
+  },
+  {
+   "tatoeba_jpn": "118845",
+   "kind": "clause dropped",
+   "a_sha256_16": "482e8c738a2dc1b6",
+   "b_sha256_16": "a69ff15510bb982f",
+   "corrupt": [
+    ", but other than that he's leading a happy life",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "150153",
+   "kind": "clause dropped",
+   "a_sha256_16": "8189c244cfbabb66",
+   "b_sha256_16": "1566b8c47dd859d4",
+   "corrupt": [
+    ", but I didn't hear anything",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "196202",
+   "kind": "clause dropped",
+   "a_sha256_16": "0e81f987a6453b6f",
+   "b_sha256_16": "3f80f984ddc6fa39",
+   "corrupt": [
+    ", but I didn't like it very much",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "108744",
+   "kind": "clause dropped",
+   "a_sha256_16": "4e83b3ead8ed4bd3",
+   "b_sha256_16": "6d43545645940886",
+   "corrupt": [
+    ", but he says very little",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "158540",
+   "kind": "clause dropped",
+   "a_sha256_16": "0ac2a3ec7e5766da",
+   "b_sha256_16": "0e523866b3e0c0d1",
+   "corrupt": [
+    ", but now I like it a lot",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "190412",
+   "kind": "clause dropped",
+   "a_sha256_16": "16068001270a2b19",
+   "b_sha256_16": "3e104b6f495e408e",
+   "corrupt": [
+    ", but missed the train",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "11512912",
+   "kind": "clause dropped",
+   "a_sha256_16": "c44413312f1627a6",
+   "b_sha256_16": "631b97ac9a2fb1db",
+   "corrupt": [
+    ", so I quit",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "934614",
+   "kind": "clause dropped",
+   "a_sha256_16": "9bede7e551a91583",
+   "b_sha256_16": "b37d4b8547966ec1",
+   "corrupt": [
+    ", but I don't forget faces",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "4744140",
+   "kind": "clause dropped",
+   "a_sha256_16": "2df1f661ca43bd5b",
+   "b_sha256_16": "1335dbdab1fe2362",
+   "corrupt": [
+    ", but the quality isn't that good",
+    ""
+   ]
+  },
+  {
+   "tatoeba_jpn": "88314",
+   "kind": "clause dropped",
+   "a_sha256_16": "16f1b18cd335d639",
+   "b_sha256_16": "6f7e9975d4bedc70",
+   "corrupt": [
+    ", but doesn't anymore",
+    ""
+   ],
+   "status": "excluded",
+   "excluded_on": "2026-10-13",
+   "why": "with the last clause dropped, 'used to keep a diary' still implies the habit ended, so the deletion does not clearly remove that meaning",
+   "replaced_by": "1513269"
+  },
+  {
+   "tatoeba_jpn": "1513269",
+   "kind": "clause dropped",
+   "a_sha256_16": "b45b08720e037c07",
+   "b_sha256_16": "840175c8ef2a6330",
+   "corrupt": [
+    ", but I don't have a hat",
+    ""
+   ],
+   "added_on": "2026-10-13",
+   "replaces": "88314"
+  }
+ ]
+}

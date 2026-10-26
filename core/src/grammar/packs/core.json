@@ -1,0 +1,1142 @@
+{
+  "name": "core",
+  "description": "The curated core grammar pack, written fresh for 屠つ. Explanations are original, and so are the examples except in the entries added 2026-10-17, which use Tatoeba sentences (CC BY 2.0 FR, credited on the About page; sentence numbers in local documentation). Nothing is copied from Imabi or Tae Kim: they are all-rights-reserved and may only be linked (project notes §8). A larger pack derived from the CC-licensed hanabira material is a separate, later import. Every `match` rule uses surfaces confirmed against real ichiran-cli output — Ichiran merges a great deal (ことができる and はずです each arrive as ONE token), so rules are deliberately conservative and are extended only once a surface has been observed.",
+  "patterns": [
+    {
+      "id": "particle-wa",
+      "pattern": "は",
+      "title": "Topic marker は",
+      "jlpt": "N5",
+      "explanation": "Marks what the sentence is about, often in contrast with something else. Written は but pronounced wa.",
+      "examples": [
+        {
+          "japanese": "私は学生です。",
+          "english": "I am a student."
+        }
+      ],
+      "match_text": [
+        "は"
+      ]
+    },
+    {
+      "id": "particle-ga",
+      "pattern": "が",
+      "title": "Subject marker が",
+      "jlpt": "N5",
+      "explanation": "Marks the subject, and picks it out as new or as the specific one that does the action.",
+      "examples": [
+        {
+          "japanese": "猫がいる。",
+          "english": "There is a cat."
+        }
+      ],
+      "match_text": [
+        "が"
+      ]
+    },
+    {
+      "id": "particle-o",
+      "pattern": "を",
+      "title": "Object marker を",
+      "jlpt": "N5",
+      "explanation": "Marks the direct object — what the action is done to.",
+      "examples": [
+        {
+          "japanese": "水を飲む。",
+          "english": "Drink water."
+        }
+      ],
+      "match_text": [
+        "を"
+      ]
+    },
+    {
+      "id": "particle-ni",
+      "pattern": "に",
+      "title": "に",
+      "jlpt": "N5",
+      "explanation": "Marks where something ends up, when it happens, or who receives it.",
+      "examples": [
+        {
+          "japanese": "東京に行く。",
+          "english": "Go to Tokyo."
+        }
+      ],
+      "match_text": [
+        "に"
+      ]
+    },
+    {
+      "id": "particle-de",
+      "pattern": "で",
+      "title": "で",
+      "jlpt": "N5",
+      "explanation": "Marks where an action happens, or what it is done by or with.",
+      "examples": [
+        {
+          "japanese": "家で食べる。",
+          "english": "Eat at home."
+        }
+      ],
+      "match_text": [
+        "で"
+      ]
+    },
+    {
+      "id": "particle-to",
+      "pattern": "と",
+      "title": "と",
+      "jlpt": "N5",
+      "explanation": "Joins nouns as a complete list, or marks who something is done together with.",
+      "examples": [
+        {
+          "japanese": "友達と行く。",
+          "english": "Go with a friend."
+        }
+      ],
+      "match_text": [
+        "と"
+      ]
+    },
+    {
+      "id": "particle-kara",
+      "pattern": "から",
+      "title": "から",
+      "jlpt": "N5",
+      "explanation": "Marks the starting point in space or time. After a clause it gives the reason.",
+      "examples": [
+        {
+          "japanese": "駅から歩く。",
+          "english": "Walk from the station."
+        }
+      ],
+      "match_text": [
+        "から"
+      ]
+    },
+    {
+      "id": "particle-made",
+      "pattern": "まで",
+      "title": "まで",
+      "jlpt": "N5",
+      "explanation": "Marks the limit something reaches — as far as, or until.",
+      "examples": [
+        {
+          "japanese": "駅まで歩く。",
+          "english": "Walk as far as the station."
+        }
+      ],
+      "match_text": [
+        "まで"
+      ]
+    },
+    {
+      "id": "particle-yori",
+      "pattern": "より",
+      "title": "より",
+      "jlpt": "N4",
+      "explanation": "Marks what something is being compared against — than.",
+      "examples": [
+        {
+          "japanese": "思ったより安い。",
+          "english": "Cheaper than I thought."
+        }
+      ],
+      "match_text": [
+        "より"
+      ]
+    },
+    {
+      "id": "particle-no",
+      "pattern": "の",
+      "title": "の",
+      "jlpt": "N5",
+      "explanation": "Links two nouns: possession, or one describing the other. Also turns a clause into a noun.",
+      "examples": [
+        {
+          "japanese": "私の本。",
+          "english": "My book."
+        }
+      ],
+      "match_text": [
+        "の"
+      ]
+    },
+    {
+      "id": "particle-mo",
+      "pattern": "も",
+      "title": "も",
+      "jlpt": "N5",
+      "explanation": "Adds the sense of too, also, or even. It replaces は and が rather than stacking with them.",
+      "examples": [
+        {
+          "japanese": "これもいい。",
+          "english": "This one is fine too."
+        }
+      ],
+      "match_text": [
+        "も"
+      ]
+    },
+    {
+      "id": "particle-ka",
+      "pattern": "か",
+      "title": "か",
+      "jlpt": "N5",
+      "explanation": "Turns a statement into a question. Between nouns it means or.",
+      "match_text": [
+        "か"
+      ]
+    },
+    {
+      "id": "particle-ne",
+      "pattern": "ね",
+      "title": "ね",
+      "jlpt": "N5",
+      "explanation": "Invites the listener to agree — isn't it, right?",
+      "match_text": [
+        "ね"
+      ]
+    },
+    {
+      "id": "particle-yo",
+      "pattern": "よ",
+      "title": "よ",
+      "jlpt": "N5",
+      "explanation": "Presses the point, telling the listener something they may not know.",
+      "match_text": [
+        "よ"
+      ]
+    },
+    {
+      "id": "particle-e",
+      "pattern": "へ",
+      "title": "へ",
+      "jlpt": "N5",
+      "explanation": "Marks the direction something heads in. Written へ but pronounced e.",
+      "match_text": [
+        "へ"
+      ]
+    },
+    {
+      "id": "particle-ya",
+      "pattern": "や",
+      "title": "や",
+      "jlpt": "N5",
+      "explanation": "Joins nouns as an incomplete list — this, that, and others.",
+      "examples": [
+        {
+          "japanese": "本や雑誌。",
+          "english": "Books, magazines, and so on."
+        }
+      ],
+      "match_text": [
+        "や"
+      ]
+    },
+    {
+      "id": "particle-niwa",
+      "pattern": "には",
+      "title": "には",
+      "jlpt": "N4",
+      "formation": "に + は",
+      "explanation": "に with the topic は over it: singles out the target for contrast or emphasis.",
+      "examples": [
+        {
+          "japanese": "彼には時間がない。",
+          "english": "He, for his part, has no time."
+        }
+      ],
+      "match_text": [
+        "には"
+      ]
+    },
+    {
+      "id": "particle-dewa",
+      "pattern": "では",
+      "title": "では",
+      "jlpt": "N4",
+      "formation": "で + は",
+      "explanation": "で with the topic は over it: as for that place or that means, in contrast with others.",
+      "match_text": [
+        "では"
+      ]
+    },
+    {
+      "id": "particle-towa",
+      "pattern": "とは",
+      "title": "とは",
+      "jlpt": "N3",
+      "formation": "と + は",
+      "explanation": "Sets up what a word means, or marks who something was done with in contrast.",
+      "match_text": [
+        "とは"
+      ]
+    },
+    {
+      "id": "particle-nimo",
+      "pattern": "にも",
+      "title": "にも",
+      "jlpt": "N4",
+      "formation": "に + も",
+      "explanation": "に with も: to that one as well.",
+      "match_text": [
+        "にも"
+      ]
+    },
+    {
+      "id": "node",
+      "pattern": "ので",
+      "title": "ので",
+      "jlpt": "N4",
+      "explanation": "Gives the reason as a plain fact. Softer and less argumentative than から. Casually 〜んで.",
+      "examples": [
+        {
+          "japanese": "安いので買った。",
+          "english": "I bought it because it was cheap."
+        }
+      ],
+      "match_text": [
+        "ので",
+        "んで"
+      ]
+    },
+    {
+      "id": "noni",
+      "pattern": "のに",
+      "title": "のに",
+      "jlpt": "N4",
+      "explanation": "Although — and usually with a note of surprise or complaint that it turned out that way.",
+      "match_text": [
+        "のに"
+      ]
+    },
+    {
+      "id": "kedo",
+      "pattern": "けど",
+      "title": "けど",
+      "jlpt": "N4",
+      "explanation": "But, though. The everyday spoken form of けれども.",
+      "examples": [
+        {
+          "japanese": "安いけど買わない。",
+          "english": "It's cheap, but I won't buy it."
+        }
+      ],
+      "match_text": [
+        "けど"
+      ]
+    },
+    {
+      "id": "nagara",
+      "pattern": "ながら",
+      "title": "〜ながら",
+      "jlpt": "N4",
+      "formation": "continuative stem + ながら",
+      "explanation": "Doing one thing while doing another at the same time.",
+      "examples": [
+        {
+          "japanese": "読みながら歩く。",
+          "english": "Walk while reading."
+        }
+      ],
+      "match_text": [
+        "ながら"
+      ]
+    },
+    {
+      "id": "koto-ga-dekiru",
+      "pattern": "ことができる",
+      "title": "〜ことができる",
+      "jlpt": "N4",
+      "formation": "dictionary form + ことができる",
+      "explanation": "Can do it — stating the ability plainly, a little more formally than the potential form.",
+      "examples": [
+        {
+          "japanese": "見ることができる。",
+          "english": "It is possible to see it."
+        }
+      ],
+      "match_text": [
+        "ことができる"
+      ]
+    },
+    {
+      "id": "kamoshirenai",
+      "pattern": "かもしれない",
+      "title": "〜かもしれない",
+      "jlpt": "N4",
+      "explanation": "It might be so. Leaves real room for it not to be.",
+      "examples": [
+        {
+          "japanese": "雨かもしれない。",
+          "english": "It might rain."
+        }
+      ],
+      "match_text": [
+        "かもしれない"
+      ]
+    },
+    {
+      "id": "koto-ga-aru",
+      "pattern": "ことがある",
+      "title": "〜ことがある",
+      "jlpt": "N4",
+      "explanation": "After a past form: have done it before. After a dictionary form: it happens sometimes.",
+      "match_text": [
+        "ことがある"
+      ]
+    },
+    {
+      "id": "hou-ga-ii",
+      "pattern": "ほうがいい",
+      "title": "〜ほうがいい",
+      "jlpt": "N4",
+      "explanation": "It would be better to — advice, not a command.",
+      "match_text": [
+        "ほうがいい"
+      ]
+    },
+    {
+      "id": "tsumori",
+      "pattern": "つもり",
+      "title": "〜つもり",
+      "jlpt": "N4",
+      "explanation": "Intends to, plans to — a decision already made.",
+      "match_text": [
+        "つもり"
+      ]
+    },
+    {
+      "id": "hazu",
+      "pattern": "はず",
+      "title": "〜はず",
+      "jlpt": "N3",
+      "explanation": "Ought to be so, going by what the speaker knows.",
+      "match_text": [
+        "はず",
+        "はずです",
+        "はずだ"
+      ]
+    },
+    {
+      "id": "rashii",
+      "pattern": "らしい",
+      "title": "〜らしい",
+      "jlpt": "N3",
+      "explanation": "Apparently — reporting what the speaker has picked up from elsewhere.",
+      "match_text": [
+        "らしい"
+      ]
+    },
+    {
+      "id": "bakari",
+      "pattern": "ばかり",
+      "title": "〜ばかり",
+      "jlpt": "N4",
+      "explanation": "Only that, nothing else — or, after a past form, that it has only just happened. Casually ばっかり or ばっか.",
+      "examples": [
+        {
+          "japanese": "来たばかり。",
+          "english": "I only just got here."
+        }
+      ],
+      "match_text": [
+        "ばかり",
+        "ばっかり",
+        "ばっか"
+      ]
+    },
+    {
+      "id": "tame-ni",
+      "pattern": "ために",
+      "title": "〜ために",
+      "jlpt": "N3",
+      "explanation": "For the sake of, or because of. Which one it is depends on what comes before it.",
+      "match_text": [
+        "ために"
+      ]
+    },
+    {
+      "id": "nakereba-naranai",
+      "pattern": "〜なければならない",
+      "title": "〜なければならない",
+      "jlpt": "N4",
+      "formation": "negative provisional (〜なければ) + ならない",
+      "explanation": "Must do it — there is no acceptable alternative. Literally: if you do not, it will not do.",
+      "match": [
+        {
+          "surface_ends": "なければ",
+          "form": "provisional",
+          "neg": true
+        },
+        {
+          "surface_any": [
+            "ならない",
+            "なりません",
+            "ならぬ",
+            "ならん"
+          ]
+        }
+      ],
+      "match_text": [
+        "なければならない",
+        "なければなりません",
+        "なければいけない",
+        "なければいけません"
+      ],
+      "examples": [
+        {
+          "japanese": "行かなければならない。",
+          "english": "I have to go."
+        }
+      ]
+    },
+    {
+      "id": "te-kuru",
+      "pattern": "〜てくる",
+      "title": "〜てくる",
+      "jlpt": "N4",
+      "formation": "te-form + くる",
+      "term_ids": ["conjunctive", "aux"],
+      "explanation": "The action comes toward the speaker, or has been building up until now."
+    },
+    {
+      "id": "explanatory-na-n",
+      "pattern": "〜なん",
+      "title": "〜なん（な + の）",
+      "formation": "な + の → なん",
+      "glosses": ["the thing is …", "it's that …"],
+      "tags": ["exp", "col"],
+      "explanation": "Setting up an explanation. な is the copula after a noun or な-adjective, and ん is の contracted — it turns what came before into the thing being explained. The copula after it carries the tense, politeness or negation.",
+      "detail": "The plain form is 〜なのだ; なん is what it becomes in speech, and what a reader meets far more often. Compare 食べるんだ, where a verb needs no な because it can precede の on its own — the な here is doing the work a noun predicate requires.",
+      "examples": [
+        {
+          "japanese": "学生なんだ。",
+          "english": "The thing is, he's a student."
+        },
+        {
+          "japanese": "ここ、静かなんです。",
+          "english": "It's that this place is quiet."
+        }
+      ]
+    },
+    {
+      "id": "te-iku",
+      "pattern": "〜ていく",
+      "title": "〜ていく",
+      "jlpt": "N4",
+      "formation": "te-form + いく",
+      "explanation": "The action moves away from the speaker, or carries on from here."
+    },
+    {
+      "id": "te-shimau",
+      "pattern": "〜てしまう",
+      "title": "〜てしまう",
+      "jlpt": "N4",
+      "formation": "te-form + しまう",
+      "explanation": "It is done completely — often with regret that it happened."
+    },
+    {
+      "id": "te-oku",
+      "pattern": "〜ておく",
+      "title": "〜ておく",
+      "jlpt": "N4",
+      "formation": "te-form + おく",
+      "term_ids": ["conjunctive", "aux"],
+      "explanation": "Do it in advance and leave it done, ready for later."
+    },
+    {
+      "id": "te-miru",
+      "pattern": "〜てみる",
+      "title": "〜てみる",
+      "jlpt": "N4",
+      "formation": "te-form + みる",
+      "explanation": "Try doing it and see how it turns out."
+    },
+    {
+      "id": "te-iru",
+      "pattern": "〜ている",
+      "title": "〜ている",
+      "jlpt": "N5",
+      "formation": "te-form + いる",
+      "explanation": "It is going on right now, or the state it left behind continues."
+    },
+    {
+      "id": "te-aru",
+      "pattern": "〜てある",
+      "title": "〜てある",
+      "jlpt": "N4",
+      "formation": "te-form + ある",
+      "term_ids": ["conjunctive", "aux"],
+      "explanation": "Someone has done it, and it has been left that way on purpose."
+    },
+    {
+      "id": "te-kureru",
+      "pattern": "〜てくれる",
+      "title": "〜てくれる",
+      "jlpt": "N4",
+      "formation": "te-form + くれる",
+      "explanation": "Someone does it for the speaker, as a kindness."
+    },
+    {
+      "id": "te-morau",
+      "pattern": "〜てもらう",
+      "title": "〜てもらう",
+      "jlpt": "N4",
+      "formation": "te-form + もらう",
+      "explanation": "The speaker gets someone else to do it for them."
+    },
+    {
+      "id": "te-ageru",
+      "pattern": "〜てあげる",
+      "title": "〜てあげる",
+      "jlpt": "N4",
+      "formation": "te-form + あげる",
+      "explanation": "The speaker does it for someone else's benefit."
+    },
+    {
+      "id": "nante",
+      "pattern": "なんて",
+      "title": "なんて",
+      "jlpt": "N3",
+      "formation": "noun / plain clause + なんて",
+      "explanation": "Holds a thing or a whole situation up with surprise, disbelief or disdain — 'the likes of', 'that … should'. At the start of an exclamation (なんていい子) it means 'what a'.",
+      "examples": [
+        {
+          "japanese": "君が失敗するなんて不思議だ。",
+          "english": "It is strange that you should fail."
+        },
+        {
+          "japanese": "豆腐がこんなにおいしいなんて知らなかった。",
+          "english": "I didn't know that tofu tasted this good."
+        }
+      ],
+      "match_text": [
+        "なんて"
+      ]
+    },
+    {
+      "id": "goto-ni",
+      "pattern": "〜ごとに",
+      "title": "〜ごとに",
+      "jlpt": "N3",
+      "formation": "noun / dictionary form + ごとに",
+      "explanation": "Each and every — once for each one, or each time it happens; with time words, at that interval.",
+      "examples": [
+        {
+          "japanese": "６時間ごとにこの薬を飲みなさい。",
+          "english": "Take this medicine every six hours."
+        },
+        {
+          "japanese": "彼女は日ごとに快方に向かっています。",
+          "english": "She is getting better day by day."
+        }
+      ],
+      "match": [
+        {
+          "surface_ends": "ごと"
+        },
+        {
+          "surface": "に"
+        }
+      ],
+      "match_text": [
+        "ごとに"
+      ]
+    },
+    {
+      "id": "oki-ni",
+      "pattern": "〜おきに",
+      "title": "〜おきに",
+      "jlpt": "N3",
+      "formation": "quantity + おきに",
+      "explanation": "At intervals, with that much left between each: 一日おきに is every other day. With minutes or metres it usually reads as 'every'.",
+      "examples": [
+        {
+          "japanese": "母は１日おきに風呂に入る。",
+          "english": "My mother takes a bath every other day."
+        },
+        {
+          "japanese": "バスは１０分おきに出ます。",
+          "english": "The bus leaves every 10 minutes."
+        }
+      ],
+      "match_text": [
+        "おきに"
+      ]
+    },
+    {
+      "id": "sei-ka",
+      "pattern": "〜せいか",
+      "title": "〜せいか",
+      "jlpt": "N2",
+      "formation": "plain clause / noun + の + せいか",
+      "explanation": "Perhaps because — offers a cause without committing to it. 〜せいで states the cause outright.",
+      "examples": [
+        {
+          "japanese": "暑くなってきたせいか、食品が傷むのが早い。",
+          "english": "Maybe because the weather's gotten hotter, the food is spoiling more quickly than usual."
+        },
+        {
+          "japanese": "飛行機でお酒飲むと、気圧のせいか酔いやすい。",
+          "english": "Maybe it's the low air pressure that means you get drunk more easily on planes."
+        }
+      ],
+      "match_text": [
+        "せいか"
+      ]
+    },
+    {
+      "id": "to-ieba",
+      "pattern": "〜といえば",
+      "title": "〜といえば",
+      "jlpt": "N3",
+      "formation": "noun + といえば",
+      "explanation": "Speaking of — takes up a topic that has just come up, or names what something first brings to mind.",
+      "examples": [
+        {
+          "japanese": "趣味といえば、あなたは切手を集めていますか。",
+          "english": "Speaking of hobbies, do you collect stamps?"
+        },
+        {
+          "japanese": "彼らは日本といえば富士山を想像する。",
+          "english": "They often connect Japan with Mt. Fuji."
+        }
+      ],
+      "match_text": [
+        "といえば",
+        "と言えば"
+      ]
+    },
+    {
+      "id": "dochiraka-to-ieba",
+      "pattern": "どちらかといえば",
+      "title": "どちらかといえば / どちらかというと",
+      "jlpt": "N3",
+      "explanation": "If anything — leaning one way without committing to it.",
+      "examples": [
+        {
+          "japanese": "どちらかといえば彼の方が私より背が高い。",
+          "english": "He is, if anything, a little taller than I."
+        },
+        {
+          "japanese": "彼女はどちらかといえば今日は少しよくなっている。",
+          "english": "She is, if anything, a little better today."
+        }
+      ],
+      "match_text": [
+        "どちらかといえば",
+        "どちらかと言えば",
+        "どちらかというと",
+        "どちらかと言うと"
+      ]
+    },
+    {
+      "id": "nandaka",
+      "pattern": "なんだか",
+      "title": "なんだか",
+      "jlpt": "N3",
+      "explanation": "Somehow — the speaker feels it without being able to say why. Close to なんとなく, but more about the feeling itself.",
+      "examples": [
+        {
+          "japanese": "なんだか今日は声に元気がないね。何かあったの？",
+          "english": "Somehow you don't sound too good today. Is anything the matter?"
+        },
+        {
+          "japanese": "お前が怒ってる時ってさ、なんだか、かわいいな。",
+          "english": "You're kind of cute when you're mad."
+        }
+      ],
+      "match_text": [
+        "なんだか",
+        "何だか"
+      ]
+    },
+    {
+      "id": "nantonaku",
+      "pattern": "なんとなく",
+      "title": "なんとなく",
+      "jlpt": "N3",
+      "explanation": "Vaguely, for no reason one can name — a feeling, a hunch, or an understanding that is only partial.",
+      "examples": [
+        {
+          "japanese": "中国語はなんとなくわかります。",
+          "english": "I more or less understand Chinese."
+        },
+        {
+          "japanese": "彼はなんとなく僕に恨みをもっているようだ。",
+          "english": "I don't know why, but he seems to have it in for me."
+        }
+      ],
+      "match_text": [
+        "なんとなく",
+        "何となく"
+      ]
+    },
+    {
+      "id": "to-yara",
+      "pattern": "〜とやら",
+      "title": "〜とやら",
+      "jlpt": "N1",
+      "formation": "noun + とやら",
+      "explanation": "Something called — names a thing the speaker only half knows, or repeats a name with a touch of doubt or irony.",
+      "examples": [
+        {
+          "japanese": "ふっ、禁断の魔術とやらは、俺には通用しないぜ！",
+          "english": "Hah, your 'forbidden magics' aren't going to work with me!"
+        },
+        {
+          "japanese": "噂をすれば何とやら。キャシーが来たわよ。",
+          "english": "Speak of the devil, here comes Kathy."
+        }
+      ],
+      "match_text": [
+        "とやら",
+        "何とやら"
+      ]
+    },
+    {
+      "id": "wo-yogi-naku-saseru",
+      "pattern": "〜を余儀なくさせる",
+      "title": "〜を余儀なくさせる",
+      "jlpt": "N1",
+      "formation": "noun + を余儀なくさせる",
+      "explanation": "Forces it on someone — the cause is the subject, and what it imposes cannot be avoided. 〜を余儀なくされる says the same from the side of whoever was forced.",
+      "examples": [
+        {
+          "japanese": "その遅れは私たちに高級ホテルでの宿泊を余儀なくさせた。",
+          "english": "The delay forced us to stay overnight in an expensive hotel."
+        }
+      ],
+      "match": [
+        {
+          "text": "余儀なく"
+        },
+        {
+          "surface_any": [
+            "させる",
+            "させた",
+            "させ",
+            "させて",
+            "させない",
+            "させます",
+            "させました"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jan",
+      "pattern": "じゃん",
+      "title": "じゃん",
+      "formation": "plain form / noun + じゃん",
+      "explanation": "Casual じゃない(か) at the end of a sentence: 'isn't it', 'you know' — inviting agreement, or pointing out something obvious.",
+      "examples": [
+        {
+          "japanese": "声ガラガラじゃん。どうしたの？",
+          "english": "Your voice is raspy. Why?"
+        },
+        {
+          "japanese": "待って、今日？次の金曜って言ってたじゃん！",
+          "english": "Wait, it's today? You told me it was next Friday!"
+        }
+      ],
+      "match_text": [
+        "じゃん"
+      ]
+    },
+    {
+      "id": "kana",
+      "pattern": "〜かな",
+      "title": "〜かな",
+      "jlpt": "N4",
+      "formation": "plain form + かな",
+      "explanation": "I wonder — a question asked of oneself, softer than か alone. After a volitional (行こうかな) it is a decision half made.",
+      "examples": [
+        {
+          "japanese": "私、トムの気持ち傷つけちゃったかな。",
+          "english": "I wonder if I hurt Tom's feelings."
+        },
+        {
+          "japanese": "お天気いいし、散歩に行こうかな。",
+          "english": "It's a nice day and I feel like taking a walk."
+        }
+      ],
+      "match_text": [
+        "かな",
+        "かなあ",
+        "かなぁ"
+      ]
+    },
+    {
+      "id": "desho-daro",
+      "pattern": "〜でしょ・〜だろ",
+      "title": "〜でしょ / 〜だろ",
+      "formation": "plain form / noun + でしょ, だろ",
+      "explanation": "Casual でしょう and だろう with the last sound dropped: 'right?', 'isn't it?' — pressing for agreement more than guessing.",
+      "examples": [
+        {
+          "japanese": "あんたには関係ないでしょ。",
+          "english": "Mind your own business."
+        },
+        {
+          "japanese": "どう考えてもおかしいだろ。",
+          "english": "It's suspicious no matter how you think about it."
+        }
+      ],
+      "match": [
+        {
+          "surface_ends_any": [
+            "でしょ",
+            "だろ"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "toko",
+      "pattern": "〜とこ",
+      "title": "〜とこ",
+      "formation": "dictionary / past form + とこ",
+      "explanation": "Casual ところ — the place, or the point in time: 行くとこ is about to go, したとこ has just done it.",
+      "examples": [
+        {
+          "japanese": "トムの家に行くとこだよ。",
+          "english": "I'm on my way to Tom's."
+        },
+        {
+          "japanese": "ちょうど洗車したとこだよ。",
+          "english": "I've just washed the car."
+        }
+      ],
+      "match": [
+        {
+          "surface": "とこ"
+        }
+      ]
+    },
+    {
+      "id": "manma",
+      "pattern": "〜まんま",
+      "title": "〜まんま",
+      "formation": "noun + の + まんま",
+      "explanation": "Casual まま: just as it is, unchanged.",
+      "examples": [
+        {
+          "japanese": "トムはプロフィール写真のまんまだね。",
+          "english": "Tom looked exactly like his profile picture."
+        }
+      ],
+      "match": [
+        {
+          "surface": "まんま"
+        }
+      ]
+    },
+    {
+      "id": "nakya",
+      "pattern": "〜なきゃ・〜なくちゃ",
+      "title": "〜なきゃ / 〜なくちゃ",
+      "jlpt": "N4",
+      "formation": "negative stem + なきゃ / なくちゃ",
+      "explanation": "Casual 'have to', with the rest of 〜なければならない or 〜なくてはならない left unsaid.",
+      "examples": [
+        {
+          "japanese": "あ、もうこんな時間。行かなきゃ。",
+          "english": "Oh, it's already this late. I have to go."
+        },
+        {
+          "japanese": "家に帰らなくちゃ。",
+          "english": "I have to go home."
+        }
+      ],
+      "match": [
+        {
+          "surface_ends_any": [
+            "なきゃ",
+            "なくちゃ"
+          ]
+        },
+        {
+          "surface_any": [
+            "いけない",
+            "いけません",
+            "ならない",
+            "なりません",
+            "だめ",
+            "駄目",
+            "ダメ"
+          ],
+          "min": 0,
+          "max": 1
+        }
+      ],
+      "match_text": [
+        "なきゃいけない",
+        "なきゃいけません",
+        "なきゃならない",
+        "なきゃなりません",
+        "なきゃだめ",
+        "なくちゃいけない",
+        "なくちゃいけません",
+        "なくちゃならない",
+        "なくちゃなりません",
+        "なくちゃだめ"
+      ]
+    },
+    {
+      "id": "kai-dai",
+      "pattern": "〜かい・〜だい",
+      "title": "〜かい / 〜だい",
+      "formation": "plain form + かい; question word (+ の/ん) + だい",
+      "explanation": "A casual question ending, mostly in men's or older speech: か softened with い, or だい after a question word (何だい, どうしたんだい).",
+      "examples": [
+        {
+          "japanese": "トム、君は幸せかい？",
+          "english": "Are you happy, Tom?"
+        },
+        {
+          "japanese": "君の車どうしたんだい？",
+          "english": "What have you done with your car?"
+        }
+      ],
+      "match_text": [
+        "かい？",
+        "だい？",
+        "かい?",
+        "だい?",
+        "かい。",
+        "だい。",
+        "んだい？",
+        "んだい?",
+        "んだい。"
+      ]
+    },
+    {
+      "id": "tte",
+      "pattern": "〜って",
+      "title": "〜って",
+      "jlpt": "N4",
+      "formation": "plain form / noun + って",
+      "explanation": "Casual と, という or は: quotes what someone said (嫌だって言ってた), reports hearsay at the end of a sentence, or picks out a topic (あなたって…).",
+      "examples": [
+        {
+          "japanese": "あいつ、新しい仕事が嫌だって言ってたよ。",
+          "english": "He said he didn't like his new job."
+        },
+        {
+          "japanese": "あなたって、本当に可愛いわね。",
+          "english": "You're really cute."
+        }
+      ],
+      "match": [
+        {
+          "surface": "って"
+        }
+      ]
+    },
+    {
+      "id": "tatte",
+      "pattern": "〜たって",
+      "title": "〜たって",
+      "formation": "past stem + たって",
+      "explanation": "Casual 〜ても: even if, no matter how. 泣いたって is 泣いても.",
+      "examples": [
+        {
+          "japanese": "泣いたってしょうがないだろ。",
+          "english": "Crying won't help."
+        },
+        {
+          "japanese": "いくら走ったって、間に合わないって。",
+          "english": "No matter how much you run, you'll never make it on time."
+        }
+      ],
+      "match": [
+        {
+          "conjugated": true
+        },
+        {
+          "surface": "たって"
+        }
+      ]
+    },
+    {
+      "id": "te-wa-ikenai",
+      "pattern": "〜てはいけない",
+      "title": "〜てはいけない",
+      "jlpt": "N4",
+      "formation": "te-form + は + いけない / ならない / だめ",
+      "explanation": "Must not — literally 'if you do it, it won't do'. With a negative (〜なくてはいけない) it turns round into 'must'.",
+      "examples": [
+        {
+          "japanese": "あの男を信用してはいけない。",
+          "english": "You shouldn't trust that man."
+        },
+        {
+          "japanese": "口にものを入れたまま話してはいけません。",
+          "english": "Do not talk with your mouth full."
+        }
+      ],
+      "match": [
+        {
+          "form": "conjunctive",
+          "neg": false
+        },
+        {
+          "surface": "は"
+        },
+        {
+          "surface_any": [
+            "いけない",
+            "いけません",
+            "ならない",
+            "なりません",
+            "だめ",
+            "駄目",
+            "ダメ"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cha-dame",
+      "pattern": "〜ちゃだめ・〜ちゃいけない",
+      "title": "〜ちゃだめ / 〜ちゃいけない",
+      "jlpt": "N4",
+      "formation": "te-form contracted to 〜ちゃ / 〜じゃ + だめ / いけない",
+      "explanation": "Casual 'must not': 〜ちゃ is 〜ては contracted (〜じゃ after a voiced て), so 触っちゃ駄目 is 触ってはだめ.",
+      "examples": [
+        {
+          "japanese": "ペンキ塗りたてだから、触っちゃ駄目よ。",
+          "english": "Don't touch the wet paint."
+        },
+        {
+          "japanese": "たき火で遊んじゃだめだよ。",
+          "english": "Don't play with open fire."
+        }
+      ],
+      "match": [
+        {
+          "surface_ends_any": [
+            "っちゃ",
+            "んじゃ",
+            "ちゃ"
+          ],
+          "neg": false
+        },
+        {
+          "surface_any": [
+            "いけない",
+            "いけません",
+            "ならない",
+            "なりません",
+            "だめ",
+            "駄目",
+            "ダメ"
+          ]
+        }
+      ]
+    }
+  ]
+}

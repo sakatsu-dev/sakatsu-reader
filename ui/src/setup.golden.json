@@ -1,0 +1,151 @@
+{
+  "fetch_progress_during": {
+    "attempt": 2,
+    "done": 100,
+    "eta": 3,
+    "file": "jitendex.zip",
+    "id": "dictionaries",
+    "speed": 1024,
+    "step": 1,
+    "steps": 2,
+    "total": 200
+  },
+  "fetch_progress_starting": {
+    "attempt": 1,
+    "done": 0,
+    "eta": null,
+    "file": "jitendex.zip",
+    "id": "dictionaries",
+    "speed": null,
+    "step": 1,
+    "steps": 2,
+    "total": 200
+  },
+  "fetch_progress_working": {
+    "attempt": 1,
+    "done": 0,
+    "eta": null,
+    "file": "importing…",
+    "id": "dictionaries",
+    "speed": null,
+    "step": 1,
+    "steps": 1,
+    "total": null
+  },
+  "phases": [
+    "checking",
+    "ready_to_install",
+    "downloading",
+    "paused_retrying",
+    "installing",
+    "verifying",
+    "complete",
+    "needs_attention"
+  ],
+  "preflight": {
+    "available_bytes": 9000000,
+    "blocking_issue": "No network connection.",
+    "enough_space": true,
+    "network_available": false,
+    "peak_bytes": 5000000,
+    "required_bytes": 4000000,
+    "supported_architecture": true,
+    "supported_windows": true,
+    "target_location": "C:\\\\profile\\\\resources",
+    "webview2": true,
+    "writable": true
+  },
+  "setup_progress": {
+    "artifact": "jitendex.zip",
+    "attempt": 2,
+    "component": "dictionaries",
+    "done": 100,
+    "eta": 3,
+    "generation": 7,
+    "speed": 1024,
+    "step": 1,
+    "steps": 2,
+    "total": 200
+  },
+  "snapshot": {
+    "analyzer_setup_pending": false,
+    "components": [
+      {
+        "artifacts": [
+          {
+            "downloaded_bytes": 100,
+            "expected_download_bytes": 200,
+            "expected_installed_bytes": 900,
+            "file": "jitendex.zip",
+            "immutable_source": "https://example.invalid/jitendex.zip",
+            "partial_file": "jitendex.zip.part",
+            "required": true,
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "transfer_job": "{4242-4242}",
+            "verification": "pending",
+            "version": "2026-07-09"
+          },
+          {
+            "downloaded_bytes": 0,
+            "expected_download_bytes": 200,
+            "expected_installed_bytes": 800,
+            "file": "jmnedict.zip",
+            "immutable_source": "https://example.invalid/jmnedict.zip",
+            "partial_file": null,
+            "required": false,
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "transfer_job": null,
+            "verification": "verified",
+            "version": "2026-07-29"
+          }
+        ],
+        "downloaded_bytes": 100,
+        "id": "dictionaries",
+        "installed": false,
+        "installed_version": null,
+        "label": "Dictionaries",
+        "repair_eligible": false,
+        "required": true,
+        "total_bytes": 400,
+        "transfer_state": "downloading",
+        "verification": "pending"
+      },
+      {
+        "artifacts": [],
+        "downloaded_bytes": 0,
+        "id": "ichiran",
+        "installed": true,
+        "installed_version": "2026-01-01",
+        "label": "Ichiran",
+        "repair_eligible": true,
+        "required": false,
+        "total_bytes": 0,
+        "transfer_state": "idle",
+        "verification": "verified"
+      }
+    ],
+    "current_component": "dictionaries",
+    "current_issue": null,
+    "existing_install": true,
+    "generation": 7,
+    "phase": "paused_retrying",
+    "required_ready": false,
+    "resumable": true,
+    "storage": {
+      "available_bytes": null,
+      "download_bytes": 1234567,
+      "installed_bytes": 2345678,
+      "peak_bytes": 3456789,
+      "reserve_bytes": 512,
+      "staging_bytes": 0,
+      "target": "C:\\\\profile\\\\resources"
+    },
+    "text_only": false,
+    "welcome_seen": true
+  },
+  "tiers": [
+    "essential",
+    "optional",
+    "advanced"
+  ]
+}

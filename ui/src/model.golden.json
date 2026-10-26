@@ -1,0 +1,370 @@
+{
+  "analysis": {
+    "text": "伝わってきます",
+    "tokens": [
+      {
+        "surface": "伝わってきます",
+        "dict_form": "伝わってくる",
+        "reading": "つたわってきます",
+        "lemma_reading": "つたわってくる",
+        "lexical_role": "pronoun",
+        "senses": [
+          {
+            "pos": "[v5r,vi]",
+            "gloss": "to be conveyed; to be transmitted",
+            "sequence": null
+          }
+        ],
+        "conjugation": {
+          "lemma": "伝わる",
+          "reading": "つたわる",
+          "props": [
+            {
+              "pos": "v5r",
+              "form": "Conjunctive (~te)",
+              "neg": false,
+              "fml": false,
+              "via_depth": 0,
+              "base_reading": "つたわる",
+              "is_base": true
+            }
+          ]
+        },
+        "components": [
+          {
+            "surface": "伝わって",
+            "dict_form": "伝わる",
+            "reading": "つたわって",
+            "lemma_reading": "つたわる",
+            "lexical_role": null,
+            "senses": [
+              {
+                "pos": "[v5r,vi]",
+                "gloss": "to be conveyed",
+                "sequence": null
+              }
+            ],
+            "conjugation": {
+              "lemma": "伝わる",
+              "reading": "つたわる",
+              "props": [
+                {
+                  "pos": "v5r",
+                  "form": "Conjunctive (~te)",
+                  "neg": false,
+                  "fml": false,
+                  "via_depth": 0,
+                  "base_reading": "つたわる",
+                  "is_base": true
+                }
+              ]
+            },
+            "components": [],
+            "selectable": true,
+            "constructions": [],
+            "alternatives": [],
+            "line_break": "none",
+            "start": 0,
+            "end": 12,
+            "confidence": 128,
+            "romaji": "tsutawatte",
+            "reading_unverified": false,
+            "reading_ambiguous": false
+          },
+          {
+            "surface": "きます",
+            "dict_form": "来る",
+            "reading": "きます",
+            "lemma_reading": "くる",
+            "lexical_role": null,
+            "senses": [
+              {
+                "pos": "[vk,vi]",
+                "gloss": "to come",
+                "sequence": null
+              }
+            ],
+            "conjugation": {
+              "lemma": "来る",
+              "reading": "くる",
+              "props": [
+                {
+                  "pos": "vk",
+                  "form": "Non-past",
+                  "neg": false,
+                  "fml": true,
+                  "via_depth": 0,
+                  "base_reading": "くる",
+                  "is_base": true
+                }
+              ]
+            },
+            "components": [],
+            "selectable": true,
+            "constructions": [],
+            "alternatives": [],
+            "line_break": "none",
+            "start": 12,
+            "end": 21,
+            "confidence": 64,
+            "romaji": "kimasu",
+            "reading_unverified": false,
+            "reading_ambiguous": true
+          }
+        ],
+        "selectable": true,
+        "constructions": [
+          {
+            "identity": "contracted_motion",
+            "source": {
+              "start": 0,
+              "end": 21
+            },
+            "components": [
+              0,
+              1
+            ],
+            "lookup": "headword",
+            "grammar": "auxiliary",
+            "grammar_pattern": "te-iku"
+          },
+          {
+            "identity": "explanatory_nan",
+            "source": {
+              "start": 0,
+              "end": 21
+            },
+            "components": [
+              0,
+              1
+            ],
+            "lookup": "grammar_pattern",
+            "grammar": "sentence",
+            "grammar_pattern": "explanatory-na-n"
+          },
+          {
+            "identity": "copula_recall",
+            "source": {
+              "start": 0,
+              "end": 21
+            },
+            "components": [
+              0,
+              1
+            ],
+            "lookup": "headword",
+            "grammar": "sentence",
+            "grammar_pattern": "hanabira-n3-kke"
+          }
+        ],
+        "alternatives": [
+          {
+            "lemma": "伝わる",
+            "reading": "つたわる",
+            "form": "Continuative (stem)",
+            "senses": [
+              {
+                "pos": "[v5r,vi]",
+                "gloss": "to be conveyed",
+                "sequence": null
+              }
+            ]
+          }
+        ],
+        "line_break": "none",
+        "start": 0,
+        "end": 21,
+        "confidence": 384,
+        "romaji": "tsutawatte kimasu",
+        "reading_unverified": true,
+        "reading_ambiguous": false
+      },
+      {
+        "surface": "。",
+        "dict_form": "",
+        "reading": "",
+        "lemma_reading": "",
+        "lexical_role": null,
+        "senses": [],
+        "conjugation": null,
+        "components": [],
+        "selectable": false,
+        "constructions": [],
+        "alternatives": [],
+        "line_break": "wrap",
+        "start": null,
+        "end": null,
+        "confidence": null,
+        "romaji": null,
+        "reading_unverified": false,
+        "reading_ambiguous": false
+      },
+      {
+        "surface": "水",
+        "dict_form": "水",
+        "reading": "みず",
+        "lemma_reading": "みず",
+        "lexical_role": "suffix",
+        "senses": [
+          {
+            "pos": "[n]",
+            "gloss": "water",
+            "sequence": 1589530
+          }
+        ],
+        "conjugation": null,
+        "components": [],
+        "selectable": true,
+        "constructions": [],
+        "alternatives": [],
+        "line_break": "break",
+        "start": 21,
+        "end": 24,
+        "confidence": 256,
+        "romaji": "mizu",
+        "reading_unverified": false,
+        "reading_ambiguous": false
+      }
+    ],
+    "execution": {
+      "requested": "automatic",
+      "engine": "lindera",
+      "fallback": {
+        "reason": "timed_out",
+        "scope": "passage",
+        "detail": "ichiran: the sidecar did not answer within the budget"
+      },
+      "repairs": [
+        {
+          "start": 0,
+          "end": 15,
+          "family": "te_oru",
+          "nasal": false,
+          "lemma": "間違う",
+          "lemma_reading": "まちがう",
+          "reading": "まちがっとる",
+          "sequence": null,
+          "stem": "headword",
+          "replaced": 2
+        }
+      ]
+    }
+  },
+  "sentences": [
+    {
+      "first_token": 0,
+      "last_token_end": 2
+    },
+    {
+      "first_token": 2,
+      "last_token_end": 3
+    }
+  ],
+  "breakdowns": [
+    {
+      "steps": [
+        {
+          "form": "conjunctive",
+          "label": "Conjunctive (~te)",
+          "pos": "v5r",
+          "neg": false,
+          "fml": false,
+          "lemma": "伝わる",
+          "base_reading": "つたわる",
+          "via_depth": 0,
+          "is_base": true,
+          "formation": {
+            "from": "つたわる",
+            "change": "る → って",
+            "result": "つたわって"
+          },
+          "component": 0
+        },
+        {
+          "form": "non-past",
+          "label": "Non-past",
+          "pos": "vk",
+          "neg": false,
+          "fml": true,
+          "lemma": "来る",
+          "base_reading": "くる",
+          "via_depth": 0,
+          "is_base": true,
+          "formation": {
+            "from": "くる",
+            "change": "irregular: くる → きます",
+            "result": "きます"
+          },
+          "component": 1
+        }
+      ],
+      "auxiliaries": [
+        {
+          "component": 1,
+          "pattern_id": "te-iku"
+        },
+        {
+          "component": 1,
+          "pattern_id": "te-kuru"
+        }
+      ]
+    },
+    {
+      "steps": [],
+      "auxiliaries": []
+    },
+    {
+      "steps": [],
+      "auxiliaries": []
+    }
+  ],
+  "patterns": [
+    {
+      "pattern_id": "particle-wa",
+      "first_token": 0,
+      "last_token_end": 2,
+      "start": 0,
+      "end": 21,
+      "elements": [
+        {
+          "element": 0,
+          "first_token": 0,
+          "last_token_end": 2,
+          "start": 0,
+          "end": 21,
+          "suffix_start": null,
+          "suffix_end": null
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    "known",
+    "new",
+    "seen"
+  ],
+  "ruby": [
+    [
+      {
+        "text": "伝",
+        "reading": "つた"
+      },
+      {
+        "text": "わってきます",
+        "reading": null
+      }
+    ],
+    [
+      {
+        "text": "。",
+        "reading": null
+      }
+    ],
+    [
+      {
+        "text": "水",
+        "reading": "みず"
+      }
+    ]
+  ]
+}

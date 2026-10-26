@@ -1,0 +1,1197 @@
+/*
+ * 屠つ — dark lo-fi.
+ *
+ * Every colour, radius and spacing step in the app comes from here. Components
+ * reference tokens and never hex values, so the theme can be changed in one place
+ * instead of seven — which is how the old palette drifted into four unrelated accent
+ * hues (blue, amber, green, red) with no relationship between them.
+ *
+ * Two rules worth keeping:
+ *
+ * 1. **Dim text is a colour, not an opacity.** The previous styles faded small text
+ *    with `opacity: 0.45`, which stacks with parent opacity and makes contrast
+ *    impossible to reason about. These are flat values, chosen to stay legible at the
+ *    sizes they are actually used at.
+ * 2. **Purple is interaction; the status hues are a scale.** Purple means "you can act
+ *    on this" — selection, focus, the primary action — and nothing else. Separately,
+ *    four colours mean *progress through a word*: blue for new, yellow for seen,
+ *    green for known, red for ignored. They are a different axis, not more accents, and
+ *    nothing outside word status may borrow them.
+ *
+ *    Red does double duty as the app's attention colour — errors, destructive edges —
+ *    and as "ignored". They are unrelated, and it works only because they never appear
+ *    near each other: errors sit under the input, the ignored chip in the vocabulary
+ *    panel. An ignored *word* stays faded rather than turning red, because something you
+ *    asked to be quiet should not shout.
+ */
+
+:root {
+  /* Surfaces: near-black through to a raised panel, with a faint violet cast so the
+     greys sit with the accents rather than fighting them. */
+  --bg: #0a090c;
+  --surface: #121016;
+  --surface-raised: #1a1721;
+  --surface-hover: #221d2b;
+  /* Below the page itself, and the only token that is.
+   *
+   * A field is a well you type into and a button is a surface you press, so they answer the
+   * pointer in opposite directions: buttons lift to `--surface-hover`, fields sink to this. That
+   * needed somewhere to sink *to*, and `--bg` is only eight units under `--surface` — a step that
+   * measurably exists and visibly does not, which is a mistake this file has already shipped once.
+   * Far enough under the page that a field reads as cut into it rather than laid on it. */
+  --surface-sunken: #05040a;
+  --border: #292432;
+  --border-strong: #3a3346;
+
+  /* Text. Warm off-white, then two dimmer steps that are still readable at 12-13px. */
+  --text: #e7e1ea;
+  --text-dim: #a49dad;
+  --text-faint: #837c8e;
+
+  /* Purple — the interactive accent. */
+  --accent: #a683e8;
+  --accent-strong: #8b62dd;
+  --accent-wash: rgba(139, 98, 221, 0.18);
+  --accent-edge: rgba(166, 131, 232, 0.45);
+
+  /* The word you are on, in the reader. The accent's values, as its own family.
+     Separate so it can be *detached* from the accent — set `--selection` in Appearance's
+     hand-set colours and the wash and edge follow it rather than the accent. Left alone it is
+     the accent, which is what the reader has always shown. */
+  --selection: #a683e8;
+  --selection-wash: rgba(139, 98, 221, 0.18);
+  --selection-edge: rgba(166, 131, 232, 0.45);
+
+  /* Red — attention, and the second half of the palette. */
+  --red: #e2687a;
+  --red-strong: #cc4f63;
+  --red-wash: rgba(204, 79, 99, 0.16);
+  --red-edge: rgba(226, 104, 122, 0.45);
+
+  /* Green — "settled". A status dot, and the "known" end of the word scale. Muted so it
+     reads as done rather than as "OK!". */
+  --good: #6fbf95;
+  --good-wash: rgba(111, 191, 149, 0.16);
+  --good-edge: rgba(111, 191, 149, 0.45);
+
+  /* The other two ends of the word scale. Blue is far enough from purple to be a
+     different statement, and this yellow is pushed warm and light because a saturated
+     one disappears against a near-black surface. */
+  --blue: #6aa9f0;
+  --blue-wash: rgba(106, 169, 240, 0.16);
+  --blue-edge: rgba(106, 169, 240, 0.5);
+
+  --yellow: #e3b341;
+  --yellow-wash: rgba(227, 179, 65, 0.16);
+  --yellow-edge: rgba(227, 179, 65, 0.5);
+
+  /* What sits *on* a filled accent. --on-accent-strong is white because the deeper
+     purple is dark enough to carry it; --on-accent is near-black because the lighter
+     hover purple is not. Kept here so that judgement is made once. */
+  --on-accent-strong: #fff;
+  --on-accent: #16121d;
+
+  /* What a panel floating over the page casts.
+   *
+   * **A token because it is a colour, and the one colour a light theme cannot inherit.** Both
+   * popups — the title bar's menu and the OCR list — wrote this out as
+   * `0 0.5rem 1.5rem rgba(0, 0, 0, 0.45)`, and 45% black under a dark panel reads as depth while
+   * the same shadow under a light one reads as a smudge. So it is the first thing a theme has to
+   * be able to change, and it could not be.
+   *
+   * Two copies had also drifted apart from the ledger: `tokens.md` recorded one literal here and
+   * there were two, the second arriving with the OCR selector. One name is one place to change. */
+  --shadow-popup: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.45);
+
+  --radius: 7px;
+  --radius-sm: 4px;
+  /* Only the reading area's corner, where it is inset into the window chrome. Larger than
+     the control radius on purpose: at 7px against a whole window edge the curve reads as
+     a rendering slip rather than a decision. */
+  --radius-lg: 10px;
+
+  /* The rail's width. Two files need to agree on it — the rail is this wide, and the
+     content panel beside it starts exactly there. */
+  --rail: 2.9rem;
+
+  /* A spacing scale, so padding stops being invented per component. */
+  --gap-xs: 0.25rem;
+  --gap-sm: 0.45rem;
+  --gap: 0.8rem;
+  --gap-lg: 1.3rem;
+  /* **An entry under a heading, and the hairline down its left.**
+   *
+   * Three surfaces draw one shape: an example (`ExampleText`'s `.ruled`), a sense (`SenseRow`) and
+   * the group heading above a run of senses (`SenseGroupHeading`). They are stacked in one card,
+   * so a reader sees them as one column and any disagreement about the inset reads as a mistake —
+   * which is exactly what happened: the senses were moved to match the examples and the group
+   * headings were left behind at a different value, six pixels out.
+   *
+   * **Two tokens rather than one, because the rule is drawn two ways.** An example uses
+   * `border-left`, which takes layout, so its text sits at rule + gap. A sense uses an inset
+   * `box-shadow`, which takes none, so its padding has to be the sum. Naming both halves is what
+   * makes that sum expressible instead of hand-computed in two files. */
+  --entry-rule: 2px;
+  --entry-gap: 0.7rem;
+  --entry-inset: calc(var(--entry-rule) + var(--entry-gap));
+
+  /* The reading surface — named here rather than in `Reader.svelte`, because the pane that
+     holds the reader has to know how tall one line is in order to refuse to be shorter than
+     one. That is the whole reason these are tokens: a component that sizes itself is fine
+     until something outside it needs the same number.
+
+     `--reader-scale` is written onto the root from the settings. The `, 1` is for the capture
+     frame, which shares this stylesheet and never runs that code — the same fallback
+     `Reader.svelte` has always carried. */
+  --reader-font: calc(1.85rem * var(--reader-scale, 1));
+  /* Leading for a line that carries furigana, which is the taller of the two cases the reader
+     sets (see `.has-ruby`). The floor below uses this one deliberately: a pane sized for a line
+     with no readings above it still cuts the tops off a line that has them. */
+  --reader-leading: 2.5;
+  /* One line, ruby and rule included, plus the reader's own padding. Everything is
+     border-box, so this is the reader's whole outside height. */
+  --reader-line: calc(var(--reader-leading) * var(--reader-font) + var(--gap-xs) + var(--gap));
+
+  /* How long anything animates. One property so a single setting reaches every
+     animation, and so turning animations off is setting it to zero rather than hunting
+     down transitions one component at a time. Overwritten from the settings at startup. */
+  /* The decorative watermarks. App.svelte overwrites all four from settings; these are
+     what the capture-frame window gets, since it shares this stylesheet but not that
+     effect — and an undeclared custom property makes `fill: ;`, which is a parse error
+     rather than a default. */
+  --decor-cloud: 0.06;
+  --decor-cloud-tint: var(--text);
+  --decor-sakura: 0.14;
+  --decor-sakura-tint: var(--text);
+  --decor-scale: 1;
+  --decor-cloud-pad: 1rem;
+  /* Softness, and these two hold a whole `filter` value rather than a length — `none` or
+     `blur(3px)`. That is what lets "off" be genuinely no filter: `blur(0px)` still promotes
+     the element to its own composited layer and re-rasterises it, so a zeroed length would
+     leave the cost with none of the effect. See `local documentation`. */
+  --decor-cloud-blur: none;
+  --decor-sakura-blur: none;
+
+  --anim: 180ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* The interface face, with the reading face behind it.
+     Inter and Segoe UI carry no CJK, so every Japanese character in an otherwise English
+     string falls past them — and what it fell to was the browser's own default, which on
+     Windows commonly resolves to a Chinese-preferred face. 直, 骨 and 今 are drawn
+     differently there, which is not a detail an app for reading Japanese can leave to
+     chance.
+     `:lang(ja)` below covers text that is marked, and marking stopped being enough: the
+     document is `lang="en"` now that the interface is English, and the glossary explains
+     itself in sentences that are English and Japanese at once — 食べる → 食べさせる inside
+     a line of prose. There is no element to mark. Naming the fallback here fixes every
+     such string at once, and costs the Latin nothing, because Inter is still asked first
+     and still answers for everything it has. */
+  --font: "Inter", "Segoe UI", system-ui, "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --font-jp: "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+
+  /* Three more voices, and **every one of them is already on the machine.**
+   *
+   * The app never touches the network and bundles no font files, so the only faces it can have
+   * are the ones Windows brings. That reads like a constraint and is closer to a gift: Windows 11
+   * carries a serif with optical sizes, three weights of a Japanese mincho, and the face Japanese
+   * schoolchildren are taught to write from. The names below are the ones the font registry
+   * gives, so they resolve as written.
+   *
+   * `--font` and `--font-jp` are deliberately unchanged. `Inter` is asked first and is absent on a
+   * stock install, which means the page renders differently from machine to machine — real, and
+   * only fixable by bundling, which is a size and a §8 licence question rather than a token one. */
+
+  /* Labels and section headings. Matthew Carter, bundled since Windows 8, with optical sizes. */
+  --font-display: "Sitka Text", Georgia, serif;
+  /* Japanese example sentences, so a quoted sentence stops reading like another definition. */
+  --font-jp-serif: "Yu Mincho", "BIZ UDMincho Medium", "Noto Serif JP", serif;
+  /* **The taught shapes, and not a style choice.** 教科書体 is what Japanese children learn to
+     write: the stroke entries and exits a gothic face flattens are the information. For the one
+     glyph drawn large enough to study, a UI face is showing the wrong thing. */
+  --font-kanji: "UD Digi Kyokasho N", "Yu Mincho", serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  /* Lo-fi: nothing here should glare. */
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:lang(ja) {
+  font-family: var(--font-jp);
+}
+
+/* Someone who has asked the OS for less motion has already answered the question, so
+   that is the default. The setting can still turn animation back on for this app —
+   an explicit choice here is more specific than a system-wide preference. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --anim: 0ms;
+  }
+}
+
+/* One focus treatment everywhere, and never removed — this is a keyboard-driven
+   reader as much as a mouse-driven one. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Every link that leaves the app.
+ *
+ * **Here because three components wanted it and two of them had written it out.** `Grammar.svelte`
+ * and `Reference.svelte` each carried their own `a { color: var(--accent) }` for a grammar
+ * reference; the About page then wanted the same for its two dozen sources and would have been the
+ * third copy — or, left alone, would have shown the webview's default link colour, which is the one
+ * blue in an otherwise purple app.
+ *
+ * The underline is the browser's own, kept: these all leave for a real website, and an underline is
+ * what says so. `--accent` alone would make them look like the app's own controls, which are the
+ * only other thing wearing that colour.
+ *
+ * `font-size` is deliberately *not* here. The two grammar pages set 0.8rem on theirs because a
+ * source line sits under a definition; About's are card headings at full size. That difference is
+ * real, so it stays local. */
+a {
+  color: var(--accent);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+/* One focus treatment for anything you type into.
+ *
+ * On `:focus` rather than `:focus-visible`, which is why the outline above does not
+ * already cover these: a text field earns a visible ring however it was reached, and a solid
+ * accent border is a firmer indicator than the outline it replaces. Three
+ * different versions of this had grown across the app before it was written down once.
+ *
+ * **The border, and no glow.** This was `--accent-edge` plus a 3px `--accent-wash` spread, and
+ * the spread is what had to go: a field can have something attached to its edge — the reference
+ * page's tabs join the bottom of its search box — and a glow bleeds across the join, drawing a
+ * halo through the one seam the tabs exist to hide. There is nowhere to put a spread ring on a
+ * box that is only three-quarters free.
+ *
+ * The border goes to solid `--accent` in exchange, so what is left is firmer than the soft edge
+ * that used to lean on the glow. `--accent-wash` keeps its real job everywhere else, which is
+ * the "this one is on" fill. */
+input,
+textarea,
+select {
+  transition: background var(--anim) var(--ease);
+}
+/* **A field answers with its inside, and never with its edge.**
+ *
+ * This was an accent border, and before that an accent border plus a wash glow. The edge is the
+ * wrong surface to say it on: the reference page's search box has tabs joined to its bottom, so its
+ * border is shared with four other elements and lighting it means lighting all of them or none.
+ * A fill is the field's own and touches nothing.
+ *
+ * Hover and focus land on the same step deliberately. They are not the same thing, but this is a
+ * text box — the pointer being over it and the cursor being in it both mean "this is where typing
+ * goes", and a scale of two nearly identical greys would say the difference without anyone reading
+ * it.
+ *
+ * **Down, not up.** Every button in the app lifts towards the light on hover; a field goes the
+ * other way, because it is a place text goes *into*. The two directions are what keep "press this"
+ * and "type here" from looking like the same offer. */
+/* **`:not(:disabled)` is here for specificity, not for disabled fields.**
+ *
+ * Without it these are `(0,1,1)` — and a component's own `input { background: … }` compiles to
+ * `input.svelte-hash`, also `(0,1,1)`. A tie, settled by injection order, and component CSS is
+ * injected after this file: so the glossary's filter kept its resting fill and never lifted at all.
+ * The extra pseudo-class takes these to `(0,2,1)` and settles it by the rule instead of by the
+ * bundler. `.control:hover:not(:disabled)` carries the same guard for the same reason — see
+ * traps.md, which had already written this down. */
+input:hover:not(:disabled),
+textarea:hover:not(:disabled),
+select:hover:not(:disabled),
+input:focus:not(:disabled),
+textarea:focus:not(:disabled),
+select:focus:not(:disabled) {
+  background: var(--surface-sunken);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+/* **A chooser, wherever one is drawn.** These were scoped to `Settings.svelte` while it was the
+ * only surface with a `<select>` or a slider; `AppMenu.svelte` now draws both in the title bar, and
+ * an unthemed native control beside themed ones is what a second copy would have been written to
+ * fix. The same move `.cap` made, for the same reason `traps.md` gives.
+ *
+ * Appearance only. The *layout* of a settings row — how wide a slider may grow, what it may shrink
+ * to — belongs to whichever surface is arranging it, and stays there.
+ *
+ * The chosen value is all a `<select>` shows, so a long name is clipped by the control rather than
+ * widening it: `min-width: 0` and `max-width: 100%` are what stop the intrinsic width of its
+ * *longest option* from setting the width of everything around it. */
+select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+}
+/* **The list a `<select>` drops, drawn by us rather than by Windows.**
+ *
+ * A native picker is painted by the OS: a white sheet with a system-blue highlight, sitting over a
+ * dark app that has nothing to do with it. No amount of styling on the `<select>` itself reaches
+ * it — the popup is outside the page. `appearance: base-select` is what moves it inside, and it
+ * has to be set on **both** the control and its picker or the picker stays the platform's.
+ *
+ * Progressive by construction: a browser that does not know the value ignores the declaration and
+ * keeps the native list, which is the behaviour every select here had until now.
+ *
+ * One rule for all fourteen selects in the app — the palette and mode in the menu, the twelve on
+ * the settings page — because a themed picker in one place and an OS picker in another is worse
+ * than either on its own. */
+select,
+::picker(select) {
+  appearance: base-select;
+}
+::picker(select) {
+  /* **A stated width, because an unstated one is negotiated.** Left to itself the picker sizes
+     against the room available beside its anchor, so anything that reflows the page while it is
+     open can renegotiate it — the width changes, the list appears to breathe, and nothing about
+     the list itself has changed. Naming it takes the picker out of that conversation.
+     `anchor-size(width)` as the floor keeps it at least as wide as the control it drops from, and
+     the cap is what a palette name actually needs; longer ones clip, which is what the control
+     itself already does. */
+  min-width: anchor-size(width);
+  width: 12rem;
+  box-sizing: border-box;
+  /* Horizontal padding as well as vertical, so a highlighted row is a rounded shape *inside* the
+     list rather than one that runs into its border. Every row shifts by the same amount, so what
+     lines up with what is unchanged. */
+  padding: var(--gap-xs);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popup);
+  /* The picker is its own layer in the top layer, so it inherits nothing from the page. The face
+     is named rather than inherited for that reason. */
+  font-family: var(--font);
+  font-size: 0.8rem;
+}
+/* The chevron the base appearance draws for us: quiet, and the text colour rather than its own. */
+select::picker-icon {
+  color: var(--text-faint);
+  transition: rotate var(--anim) var(--ease);
+}
+select:open::picker-icon {
+  rotate: 180deg;
+}
+option {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: 0.3rem var(--gap);
+  /* **The fill is the shape, so the shape is rounded.** A row says "this one" by filling, and a
+     full-bleed rectangle is the one control shape this app does not otherwise draw — every other
+     surface that fills to mean something wears this radius. Stated once, above both the chosen row
+     and the hovered one, because they are the same shape in two states and were briefly not. */
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  /* **Every part of the type is stated, and `font: inherit` is the wrong tool here.**
+     An `<option>` is a child of its `<optgroup>`, so it inherits the heading treatment below —
+     which is uppercase, letterspaced *and* `--font-display`, a serif. Inheriting gave six palette
+     names set in Sitka Text in a UI drawn in Inter; the fix is to name the face rather than to ask
+     a parent that is deliberately different. */
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+/* Where you already are, so there is nothing to switch *to*. */
+option:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+/* The app's own "this is the one" — the same accent wash every chosen control wears, rather than
+   the system highlight the native list used. Shares its rounding with hover, above. */
+option:checked {
+  color: var(--text);
+  background: var(--accent-wash);
+}
+option:hover:not(:disabled),
+option:focus:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-hover);
+  outline: none;
+}
+/* The tick the base appearance offers in front of the chosen row. The wash above already says
+   which one it is, and a mark as well as a fill is one signal too many in a short list. */
+option::checkmark {
+  display: none;
+}
+/* **A row not in a group is still a row.**
+ *
+ * An `<optgroup>` indents its options by its own horizontal padding, so a grouped row's fill sits
+ * inset from the list's edge. An option that is a direct child of the `<select>` gets no such
+ * indent, and drew the same wash at the full width of the list — one meaning, two shapes, visible
+ * the moment a rounded fill made the edges worth looking at. The palette list shows both kinds at
+ * once (`Unsaved` sits outside the groups) and the engine list is *all* of this kind, so matching
+ * the indent here is what keeps one highlight shape across every select in the app. */
+select > option {
+  margin-inline: var(--gap);
+}
+/* **A heading, but not an editorial one.**
+ *
+ * This wore `--font-display` at first, on the grounds that it matched `.section` — and it did,
+ * exactly: same face, same case, same tracking. That was the wrong comparison. `.section` is a
+ * heading over page *content*, with room around it, where a serif reads as a considered touch. A
+ * `<select>`'s group label is chrome inside a control, sitting among rows whose every other word —
+ * the settings, the destinations — is the UI face; one serif line there reads as a different
+ * typeface that wandered in.
+ *
+ * So it stays a heading by the means headings here are made anyway: smaller, uppercase, tracked
+ * out and faint. Only the face changes. */
+optgroup {
+  padding: var(--gap-xs) var(--gap) 0.1rem;
+  color: var(--text-faint);
+  font-family: var(--font);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The platform's slider, wearing the app's colour. */
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* The range is still the platform's: a background on it shows through behind the track it is not
+   drawing, so the field fill has to be called off. `accent-color` carries its state. */
+input[type="range"]:hover:not(:disabled),
+input[type="range"]:focus:not(:disabled) {
+  background: none;
+}
+
+/* The switch — every `input[type="checkbox"]` in the app.
+ *
+ * **It used to be the platform's checkbox with `accent-color` on it**, which is the one control
+ * that looked like it belonged to Windows rather than to this app: a square tick in a rounded,
+ * dark, purple interface. Seventeen of them sit in the settings, so it was also the most repeated
+ * thing on the page.
+ *
+ * A switch rather than a prettier tick, because these are all settings. A tick answers "is this
+ * one of the ones you picked"; a switch answers "is this on", which is what every one of them is
+ * actually asking. Nothing here is a multiple-choice list.
+ *
+ * The two states are the app's own vocabulary rather than a new one: **off is a field**, sunken
+ * and edged like the thing you type into — see the rule above about answering downwards — and
+ * **on is the accent fill**, the same purple that means "this one is on" everywhere else. So the
+ * knob crossing is a control moving from the recessed half of the palette to the lit half.
+ *
+ * `appearance: none` keeps the element a checkbox to everything except the paint: it is still
+ * focusable, still toggles on Space, still reports checked. */
+input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  /* Never stretched or squashed by the flex row it sits in. */
+  flex: none;
+  width: 2.1rem;
+  height: 1.15rem;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition:
+    background var(--anim) var(--ease),
+    border-color var(--anim) var(--ease);
+}
+
+/* The knob. `left` is measured from the padding edge, so the travel is the track's inner width
+   less the knob and its two clearances — `2.1 - 0.8 - 0.15 - 0.15` rem, less the two borders. */
+input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transform: translate(0, -50%);
+  transition:
+    background var(--anim) var(--ease),
+    transform var(--anim) var(--ease);
+}
+
+/* Only the edge, because the fill the generic field rule gives it on hover is already this. */
+input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+/* `:checked` alone is `(0,2,1)` — level with `input:hover:not(:disabled)` and
+   `input:focus:not(:disabled)` above, and later in the file, so it wins both. Written this way on
+   purpose: a switch that is on must not go back to looking like an empty field merely because the
+   pointer is over it or the keyboard is in it. */
+input[type="checkbox"]:checked {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+input[type="checkbox"]:checked::after {
+  background: var(--on-accent-strong);
+  transform: translate(calc(1rem - 2px), -50%);
+}
+input[type="checkbox"]:checked:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* The same half-strength every other disabled control uses, and no pointer offer with it. */
+input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* **The focus ring would otherwise square the pill off.** `:focus-visible` below sets
+   `border-radius: var(--radius-sm)` so a ring never wraps a sharp corner — right for everything
+   that is roughly a rectangle, and wrong here, because it reshapes the control itself for as long
+   as the keyboard is on it. The outline follows the element's own radius, so restoring the pill
+   restores the ring with it. */
+input[type="checkbox"]:focus-visible {
+  border-radius: 999px;
+}
+
+/* The ordinary button, in one place.
+ *
+ * Only what has to be identical: the surface, the edge, the resting colour and the way it
+ * moves. Size stays with each component, because a control in the overlay's one-row
+ * toolbar and one under the passage are not the same size for a reason. Seven components
+ * had written these four declarations out separately and they had drifted.
+ *
+ * Scoping is what makes this safe to override: Svelte compiles a component's `.speak` to
+ * `.speak.svelte-xyz`, which outranks a bare `.control`. The same rule is why the shared
+ * declarations had to be *deleted* there rather than left to be shadowed — a bare
+ * `button { background: … }` compiles to `button.svelte-xyz` and would still win. */
+.control {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  transition:
+    background var(--anim) var(--ease),
+    color var(--anim) var(--ease),
+    border-color var(--anim) var(--ease);
+}
+/* Colour and edge only. Six of the seven did exactly this and one also lifted the
+   background; the odd one out keeps that locally, because on the largest buttons in the
+   app it reads as weight rather than as a different kind of control. */
+.control:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.control:disabled {
+  opacity: 0.5;
+}
+
+/* Purple leads: the primary action is the only filled control on its screen. Written out
+   three times before this. */
+.control.primary {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--on-accent-strong);
+  font-weight: 600;
+}
+.control.primary:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* A page in the main area — reference, glossary, help.
+ *
+ * All three are a heading that stays put over a box that scrolls, and all three were
+ * written out separately until they had drifted: the reference page had gained a
+ * `padding-top` the other two never got, so the same layout began one gap lower on one
+ * page than on the others.
+ *
+ * The reading page is deliberately not one of these. It is a text box and a split, not a
+ * heading over a scroller. */
+.page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  /* The gap `main` charges for a header that is not there.
+   *
+   * `h1.name` is positioned absolutely, so on every page but the reading one the header is
+   * a flex item with no height — and a flex gap is paid either way. Without this the page
+   * would start a gap below where the reading page starts, against a rail that starts at
+   * the top whichever page is open. */
+  margin-top: calc(-1 * var(--gap));
+}
+
+/* The page's name. On the element, so a page cannot quietly style its own differently. */
+.page > h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+/* Said but not shown: readable by a screen reader, invisible on screen, and taking no space.
+ *
+ * **Not `display: none` or `visibility: hidden`**, either of which would take it out of the
+ * accessibility tree along with the view — which is the one thing it is here for. A page needs
+ * a heading; it does not always need to print one. The reader's `h1` has been doing this by
+ * hand since the title bar started carrying the app's name, and the reference page wants it now
+ * that its own title has given way to browser chrome, so it lives here rather than twice.
+ *
+ * `position: absolute` is load-bearing beyond the hiding: an absolute child is not a flex item,
+ * so it costs no `gap` in the column it sits in. Removing a *visible* heading from a `.page`
+ * without this leaves the gap it used to be spaced by. */
+.offscreen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The part that scrolls. A page adds `display: flex` and a gap if its sections want one;
+   what is shared is the scrolling and the room around it. */
+.page-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Reserved either way, so folding a section until the page no longer overflows does not
+     change how wide everything is. */
+  scrollbar-gutter: stable;
+  padding-top: var(--gap-sm);
+  padding-right: var(--gap-sm);
+  padding-bottom: var(--gap-lg);
+}
+
+/* The one that undoes, throws away, or stops.
+ *
+ * An outline, not a fill. `.control.primary` is the only filled control on a screen and it
+ * means "do the thing you came for"; this undoes it, and two filled buttons side by side
+ * would ask the eye to choose between them. Red as an edge says the same word more
+ * quietly.
+ *
+ * `--red` also means "ignored" on a word status. The two never appear near each other —
+ * this is on the controls, that is in the vocabulary panel — which is the whole reason one
+ * colour can carry both. */
+.control.danger {
+  color: var(--red);
+  border-color: var(--red-edge);
+}
+.control.danger:hover:not(:disabled) {
+  background: var(--red-wash);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* `hidden` means not rendered, and no layout rule may outrank that.
+ *
+ * The attribute is only `display: none` in the UA stylesheet, so **any** `display` a
+ * component sets beats it — a settings row at `display: flex` stayed on screen when filtered
+ * out, and a collapsed section body would do the same. This is the case `!important` exists
+ * for.
+ *
+ * Global, and it had to become so. It lived in `Settings.svelte` for one component's rows,
+ * which meant every other component believed it had this protection and did not: Svelte
+ * scopes styles, so the rule reached nothing outside that file. The style ledger described it
+ * as the fix without saying where it lived. */
+[hidden] {
+  display: none !important;
+}
+
+/* A small mono chip: a dictionary's own label for something, set apart from prose.
+ *
+ * Three places wanted this and two already had byte-identical copies — `SenseRow`'s
+ * `.plain-tag` and `Term`'s `.term.badge`. Two of the three share this one now.
+ *
+ * **`Term` cannot, and its copy is not drift.** That variant is a `<button>`, so its own
+ * rule resets one — `font: inherit`, `color: inherit`, `background: none`, `padding: 0` —
+ * and a scoped `.term` is `(0,2,0)` against this `(0,1,0)`. Anything shared here loses every
+ * declaration to those resets, silently, with nothing in the build to say so. A rule that has
+ * to beat them has to live beside them.
+ *
+ * Mono on purpose. These are codes and labels a dictionary chose — `adverb`, `kana`,
+ * `uncommon` — not words in the sentence around them, and the face is what says so.
+ *
+ * Carries no affordance. `Term` adds the dotted underline that means "there is more here";
+ * a chip on its own is a label and must not look pressable. */
+.pill {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-faint);
+}
+
+/* A title-bar button.
+ *
+ * **Shared here because two components draw one shape.** `Caption.svelte` had these scoped to
+ * itself, which was right while it was the only caller; `QuickAppearance.svelte` now sits in the
+ * same row and an unstyled button beside four styled ones is what a second copy would have been
+ * written to fix. `traps.md` records the rule: two scoped copies of one shape is how they come to
+ * differ. What stays in `Caption.svelte` is what is genuinely its own — the close button's red,
+ * the pin's on-state, the strip and the menu.
+ *
+ * **`--caption-w` comes from Rust.** The hit-test overlay is positioned from the same number, and
+ * a copy would drift out of step with it. It is set on `.caption` and inherited, so a button in
+ * that row gets it wherever the button's markup happens to live.
+ */
+.cap {
+  width: var(--caption-w);
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  cursor: default;
+  transition:
+    background var(--anim) var(--ease),
+    color var(--anim) var(--ease);
+}
+/* The OS's three — minimise, maximise, close — are 10-viewBox hairlines. */
+.cap svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  /* 1px, unscaled: these are hairlines in every other window on the desktop, and a thicker
+     version reads as an app trying to have opinions about the close button. */
+  stroke-width: 1;
+  /* Crisp at 100%, where a half-pixel offset would grey the whole glyph. The paths are drawn on
+     half-pixel centres for the same reason. */
+  shape-rendering: crispEdges;
+}
+/* **The app's own icons, which are 24-viewBox artwork.** The pin, the gear and the appearance A
+   carry their own weights and joins, so they take their own size rather than being squeezed into
+   the OS's, and `crispEdges` would square off joins their paths draw round. Keyed on `.glyph`
+   rather than on each button, so a fourth icon of this kind needs no new rule. */
+.cap .glyph {
+  width: 17px;
+  height: 17px;
+  shape-rendering: auto;
+}
+.cap:hover,
+.cap.hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.cap:active,
+.cap.press {
+  /* Dimmer than hover rather than brighter: pressed is "on its way in". */
+  background: var(--surface-raised);
+}
+.cap:focus-visible {
+  /* The shared ring, so keyboard focus looks the same here as everywhere else. */
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cap {
+    transition: none;
+  }
+}
+
+/* A result card's disclosure control: still a real button, but drawn as nothing.
+ *
+ * **Reference and Glossary cards used to carry a pull tab** hanging off their bottom edge, with a
+ * chevron that turned as the card opened. It was removed on 2026-10-17 because it took a row under
+ * every card and crowded both pages; the card itself is now what a pointer clicks (see
+ * `cardClick` in each page).
+ *
+ * **The button stays because it is still the card's keyboard and screen-reader control.** It
+ * carries `aria-expanded`, `aria-controls`, the roving tabindex, the arrow keys, and the
+ * `data-result` / `data-term` that Escape and the arrow keys focus by. So it is hidden the
+ * accessible way — one clipped pixel, out of the layout, still in the tab order and still announced
+ * — never `display: none` or `visibility: hidden`, which would leave the cards reachable by mouse
+ * alone. Out of the flow, so it reserves no space under the card.
+ *
+ * Checked before taking the name: nothing else in `ui/src` styles `.disclose`. A bare class here
+ * lands on every component using it — see `traps.md`.
+ */
+.disclose {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* **The item holding it is its positioning context, and the whole window depends on that.**
+ * Unpositioned, an absolute `.disclose` takes its containing block from outside the scrolling
+ * list, so every control sat at its natural place down a column as tall as the whole list —
+ * 5,000px of the glossary — that did not scroll with the list but stretched the window's frame.
+ * Focusing one far down then scrolled `.app` itself (an `overflow: hidden` box is still scrollable
+ * from script) and the title bar, rail and page slid off the top, leaving an empty window. Inside
+ * a positioned item the control scrolls with its card, and a focus scrolls the list and nothing
+ * else. See `traps.md`. */
+:has(> .disclose) {
+  position: relative;
+}
+/* **Its keyboard focus is drawn on the card it belongs to**, because the button itself has no
+ * pixels to wear a ring. The button follows the card in each list item, so the item is what can
+ * see both. Inset rather than the usual 2px outside: Reference's list runs flush to its left edge
+ * and scrolls, so an outside ring would be clipped on that side. Keyed on the structure rather
+ * than on either page's item class, so one rule serves both. */
+:has(> .disclose:focus-visible) > .card {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* A quiet heading over one kind of fact: MEANINGS, COMMON COMPOUNDS, EXAMPLES.
+ *
+ * Shared rather than scoped, because a detail with many kinds of fact is exactly where two
+ * copies drift — the lesson `.flag` below records. `Character.svelte` and `WordBody.svelte` both
+ * draw these, and a kanji and a word have to read alike or the page has two voices.
+ *
+ * The same face as `.pill`: mono, small, letterspaced, faint. It is a label for a block rather
+ * than a heading in prose, so it takes no weight of its own. */
+.section {
+  margin: var(--gap) 0 0.3rem;
+  font-family: var(--font-display);
+  font-size: 0.63rem;
+  font-weight: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+/* The same chip in prose, for something the app is saying rather than something a dictionary
+ * classified: `formal` on a conjugation step, `on 伝わる` naming what a form was built from,
+ * `as written 伝わってきます` under a headword.
+ *
+ * **The difference from `.pill` is the face, and it is the whole distinction.** Mono says "a
+ * dictionary's own abbreviation"; these are our words about the reader's word, so they are set
+ * in prose. Same size, padding and radius, because they are the same object at a glance.
+ *
+ * Here rather than in `Grammar.svelte`, where it started, because the vocabulary panel now
+ * wears one too — and a scoped copy in each is how two chips that must match come to differ.
+ * Grammar's copy was deleted rather than left to shadow this: see traps.md. */
+.flag {
+  font-size: 0.68rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-dim);
+}
+/* Negation reverses the meaning, so it is the one flag allowed the attention colour. */
+.flag.negative {
+  background: var(--red-wash);
+  color: var(--red);
+}
+/* Accent for a flag that names *another word* — the lemma a form was built on, the surface a
+   headword was met as. It points somewhere, where the others only qualify. */
+.flag.base {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+/* The heading over one section of a grouped list. Shared by the glossary and the reference
+ * page, and quiet on purpose: it names a pile, it is not a thing to read. */
+.group-name {
+  /* More space above than below, and both non-zero.
+   *
+   * The bottom was `0`, which put the heading flush against the first card under it — nothing
+   * else supplied the gap, because the reference page's list is `margin: 0`. So a heading
+   * that belongs to the pile beneath it was touching that pile and a clear 1.3rem from the
+   * one before, which reads as the label of whatever it is nearest.
+   *
+   * Keeping above larger than below is the point rather than an accident: a heading has to
+   * sit closer to what it names than to what precedes it, or it looks like a footer for the
+   * previous group. */
+  margin: var(--gap-lg) 0 var(--gap);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.group-name:first-child {
+  margin-top: 0;
+}
+
+/* A dictionary entry's identity, ruled off from what it means.
+ *
+ * Above the line: the headword, its reading, any kanji opened under it, the other ways it is
+ * written — everything answering *which word is this*. Below it: the senses, which answer
+ * *what does it mean*. Two questions, and a headword with five alternative spellings ran
+ * into its own first definition with nothing between them but a paragraph gap.
+ *
+ * Shared because both places that print a dictionary entry need the same line: the reference
+ * page's results and the reading panel's selected word. The rule is the whole of what is
+ * shared — each caller decides what goes above it, which is why the panel's status buttons
+ * are inside and the reference page's are not.
+ *
+ * It supplies the space *below* the line and nothing above: the last element in the block
+ * keeps its own bottom margin. A `> :last-child { margin: 0 }` here would be the mistake
+ * traps.md opens with — a component's scoped `.forms` or `.status` outranks a global class,
+ * so the reset would silently apply in one caller and not the other. */
+.term-head {
+  padding-bottom: var(--gap-sm);
+  margin-bottom: var(--gap);
+  border-bottom: 1px solid var(--border);
+}
+
+/* A control that is waiting on something.
+ *
+ * `currentColor` and `em`, so one rule works on a filled primary and a plain control alike
+ * and follows whatever text it sits with.
+ *
+ * The duration is a literal, and this is the one place that is correct rather than the
+ * oversight it usually is: `--anim` becomes `0ms` when animations are switched off, and a
+ * zero-length *infinite* animation is not stillness — it is the same loop running
+ * infinitely fast. Infinite animations are guarded by the media query below instead, the
+ * same way `FirstRun`'s progress sweep is. See `local documentation`. */
+.spinner {
+  display: inline-block;
+  /* Taller than it is wide, because an hourglass is. A square one reads as a bowtie. */
+  width: 0.68em;
+  height: 0.9em;
+  /* Sits on the text's middle rather than its baseline: every place this is used but one
+     puts it inline beside a word. The exception is the reference page's search button, where
+     it is a grid item and this does nothing either way. */
+  vertical-align: -0.12em;
+  background: currentColor;
+  /* A silhouette rather than a drawing: two bulbs and a neck, cut out of a solid block.
+   *
+   * `clip-path` and not an `<svg>`, and not because SVG would be worse — it would be better,
+   * and it is what every other icon here is. It is that `.spinner` is a *class*, worn by a
+   * bare `<span>`, and one of those spans lives inside a grid cell whose layout comes from
+   * the reference page's own scoped rules. Scoped styles do not reach into a component, so
+   * turning this into one would leave that span unstyled. The class stays; the shape moves
+   * into it.
+   *
+   * The neck is 42%–58% rather than a point: a silhouette that meets exactly in the middle
+   * loses its waist to antialiasing at this size and reads as two stacked triangles. */
+  clip-path: polygon(
+    0% 0%, 100% 0%,
+    100% 14%, 58% 50%, 100% 86%,
+    100% 100%, 0% 100%,
+    0% 86%, 42% 50%, 0% 14%
+  );
+  animation: hourglass 1.8s ease-in-out infinite;
+}
+/* Two turns per cycle, each after a pause, because that is what an hourglass does: it sits
+ * while the sand runs and is turned when it stops. A continuous rotation would be a wheel
+ * wearing an hourglass's shape.
+ *
+ * The duration is a literal, and this is the one place that is correct rather than the
+ * oversight it usually is: `--anim` becomes `0ms` when animations are switched off, and a
+ * zero-length *infinite* animation is not stillness — it is the same loop running infinitely
+ * fast. Infinite animations are guarded by the media query below instead. */
+@keyframes hourglass {
+  0%,
+  35% {
+    rotate: 0deg;
+  }
+  50%,
+  85% {
+    rotate: 180deg;
+  }
+  100% {
+    rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Stopped, and standing up. An hourglass at rest is still an hourglass, which is the whole
+     reason the shape was worth having: it says "waiting" without moving. The ring this
+     replaced could not — a frozen arc with a gap in it reads as a rendering fault. */
+  .spinner {
+    animation: none;
+    opacity: 0.55;
+  }
+}
+
+/* An icon says nothing on its own, so the controls that are only an icon carry the
+ * sentence their label used to be and show it on hover or keyboard focus.
+ *
+ * Written rather than left to the browser's `title`, which waits about a second, cannot be
+ * styled, and never appears for someone tabbing through. `aria-label` still carries the
+ * same words to a screen reader.
+ *
+ * Global, and this is the point of it: these rules used to live in App.svelte's scoped
+ * styles, so `data-tip` silently did nothing anywhere else and every other component fell
+ * back to `title`. That is why the split was twelve to four. */
+[data-tip] {
+  position: relative;
+}
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  /* One ordinary group-space from the control edge. The old inset used `--gap-xs`, which
+     belongs inside a control and left the bubble looking attached to the icon. */
+  top: calc(100% + var(--gap-sm));
+  left: 50%;
+  translate: -50% 0;
+  z-index: 4;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  /* One line where it fits, and never wider than a comfortable measure. */
+  width: max-content;
+  max-width: 15rem;
+  text-align: center;
+  /* Not in the way of the pointer, and gone until wanted. */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--anim) var(--ease);
+  /* Leaving is immediate. A delayed fade-out makes a tip hang over the next thing the
+     pointer reaches, which is precisely what the initial wait is meant to prevent. */
+  transition-delay: 0ms;
+}
+[data-tip]:hover::after,
+[data-tip].hover::after {
+  opacity: 1;
+  /* Standard Windows tooltip controls use the system double-click interval as their
+     initial delay: 500ms at the default setting and on this machine. This literal is
+     interaction timing, not animation timing — disabling motion must not make accidental
+     brushes across a toolbar summon descriptions immediately. */
+  transition-delay: 500ms;
+}
+[data-tip]:focus-visible::after {
+  opacity: 1;
+  /* Keyboard focus is deliberate, so it gets the description without a pointer debounce. */
+  transition-delay: 0ms;
+}
+
+/* Three anchors, because the safe direction depends on where the control sits. Centred is
+   the default and suits anything with room either side. */
+
+/* For a control pinned to a left content edge: left edges aligned, so the bubble grows into
+   the page. The rail deliberately stacks above `main`; letting a centred bubble extend beneath
+   it therefore hides the bubble's beginning even though the tooltip itself has a high z-index. */
+[data-tip].tip-left::after {
+  left: 0;
+  translate: 0 0;
+  text-align: left;
+}
+
+/* For a control pinned to a right edge: right edges aligned, so it grows leftward into the
+   page. Centred, a 15rem box on the header toggles ran off the window and was cut in half
+   by `.app`'s `overflow: hidden`. */
+[data-tip].tip-right::after {
+  left: auto;
+  right: 0;
+  translate: 0 0;
+  /* Ragged edge away from the anchor rather than centred lines of different widths. */
+  text-align: left;
+}
+
+/* For the vertical rail: beside the control rather than under it. Centred would run off
+   the left edge of a 2.9rem rail, and *below* would run off the bottom of the window for
+   the gear, which sits on the floor. */
+[data-tip].tip-side::after {
+  top: 50%;
+  left: calc(100% + var(--gap-sm));
+  translate: 0 -50%;
+  text-align: left;
+}
+
+::selection {
+  background: var(--accent-wash);
+}
+
+/* Scrollbars, so the panes do not sprout bright system-grey bars in a black app. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-strong);
+  background-clip: content-box;
+}
+
+/* **The way out of a page you detoured to.**
+ *
+ * Settings and Help are both places you go *from* somewhere and come back from, and both put the
+ * same borderless × in the same corner. It was Settings' private rule until Help wanted it; a
+ * second copy of a button this small is how the two come to sit a pixel apart or answer to
+ * different names, so it is stated once here.
+ *
+ * **Borderless on purpose.** `.control` is the house button and carries a border and a raised
+ * background — weight this does not want beside a page title. Sized to the heading it sits with
+ * rather than to a control, so it reads as part of the title row.
+ *
+ * **No hover state, also on purpose.** It had one, and it read as a glow beside the title: a lot
+ * of movement for a control you are leaving by. The pointer still turns and `data-tip` still names
+ * the destination, so it says it is a button without lighting up to do it. The transition went
+ * with the hover — there was nothing left to animate.
+ *
+ * The host needs `position: relative`; the × itself is `aria-hidden` and the button carries the
+ * name, so a screen reader is told where it goes rather than being read a multiplication sign. */
+.exit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+}

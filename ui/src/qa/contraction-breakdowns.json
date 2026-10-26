@@ -1,0 +1,80 @@
+{
+  "怒んなきゃ": {
+    "auxiliaries": [],
+    "steps": [
+      {
+        "base_reading": "おこる",
+        "component": null,
+        "fml": false,
+        "form": "provisional",
+        "formation": {
+          "change": "る → ら, then add なければ",
+          "from": "おこる",
+          "result": "おこらなければ"
+        },
+        "is_base": true,
+        "label": "Provisional (~eba)",
+        "lemma": "怒る",
+        "neg": true,
+        "pos": "v5r",
+        "via_depth": 1
+      },
+      {
+        "base_reading": "",
+        "component": null,
+        "fml": false,
+        "form": "contraction",
+        "formation": {
+          "change": "なければ → なきゃ, ら → ん",
+          "from": "おこらなければ",
+          "result": "おこんなきゃ"
+        },
+        "is_base": false,
+        "label": "Contracted ～なければ (～なきゃ)",
+        "lemma": "怒る",
+        "neg": false,
+        "pos": "v5r",
+        "via_depth": 0
+      }
+    ]
+  },
+  "間違っとる": {
+    "auxiliaries": [],
+    "steps": [
+      {
+        "base_reading": "まちがう",
+        "component": null,
+        "fml": false,
+        "form": "conjunctive",
+        "formation": {
+          "change": "う → って",
+          "from": "まちがう",
+          "result": "まちがって"
+        },
+        "is_base": true,
+        "label": "Conjunctive (~te)",
+        "lemma": "間違う",
+        "neg": false,
+        "pos": "v5u",
+        "via_depth": 1
+      },
+      {
+        "base_reading": "",
+        "component": null,
+        "fml": false,
+        "form": "contraction",
+        "formation": {
+          "change": "ておる → とる",
+          "from": "まちがっておる",
+          "result": "まちがっとる"
+        },
+        "is_base": false,
+        "label": "Contracted ～ておる (～とる)",
+        "lemma": "間違う",
+        "neg": false,
+        "pos": "v5u",
+        "via_depth": 0
+      }
+    ]
+  }
+}

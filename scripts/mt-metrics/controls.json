@@ -1,0 +1,1118 @@
+{
+ "about": "Control set for JA->EN translation: items are pooled-corpus indices (the 300 Jitendex/Tatoeba sentences of translation_quality.rs). The phrase screen flags; a person judges. See README.md.",
+ "reviewed": {
+  "by": "Codex (agent review)",
+  "on": "2026-10-13",
+  "digest": "262e74cc9f3a3332a5588f9efae7e49fc8870938a5beae6d734440bb013d9b9c"
+ },
+ "comparison": {
+  "baseline": "fugumt",
+  "candidates": [
+   "lfm2-t0",
+   "lfm2-t05"
+  ],
+  "metrics": [
+   "metricx",
+   "comet"
+  ],
+  "primary": "metricx",
+  "tests": 4,
+  "interval_level": 0.9875
+ },
+ "items": [
+  {
+   "index": 18,
+   "kind": "negation",
+   "element": "費やすな",
+   "reference_sha256_16": "37a7e5a138de1a0c",
+   "accept": [
+    [
+     "don't",
+     "do not",
+     "never",
+     "mustn't",
+     "must not",
+     "shouldn't",
+     "should not",
+     "stop"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Don't waste",
+    "Waste"
+   ],
+   "alternatives": [
+    "Stop wasting your time on trivial things."
+   ]
+  },
+  {
+   "index": 32,
+   "kind": "negation",
+   "element": "ではなく",
+   "reference_sha256_16": "c830f4e9ab6b4d05",
+   "accept": [
+    [
+     "not (?:because (?:he was |he'd been |he felt |of being )?)?homesick",
+     "not (?:out of|due to|from|because of) homesickness",
+     "wasn't homesick",
+     "was not homesick",
+     "rather than (?:because of )?homesickness",
+     "not that he was homesick"
+    ],
+    [
+     "money",
+     "broke",
+     "funds",
+     "cash",
+     "short of",
+     "poor",
+     "pocket"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "not because he was homesick, but because he was running short of money",
+    "because he was homesick, not because he was running short of money"
+   ],
+   "alternatives": [
+    "He returned not out of homesickness but because he was running out of money."
+   ]
+  },
+  {
+   "index": 56,
+   "kind": "negation",
+   "element": "知らなかった",
+   "reference_sha256_16": "9af1833b453e14b6",
+   "accept": [
+    [
+     "did not know",
+     "didn't know",
+     "did not realize",
+     "didn't realize",
+     "did not realise",
+     "didn't realise",
+     "were unaware",
+     "was unknown",
+     "had no idea",
+     "not aware",
+     "unaware",
+     "no one knew",
+     "nobody knew"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "did not know",
+    "knew"
+   ],
+   "alternatives": [
+    "In the old days people didn't know that the earth was round and went around the sun."
+   ]
+  },
+  {
+   "index": 104,
+   "kind": "negation",
+   "element": "ありません",
+   "reference_sha256_16": "6212bf12f5a8b474",
+   "accept": [
+    [
+     "no",
+     "not",
+     "isn't",
+     "aren't",
+     "nothing",
+     "none"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "There is no easy",
+    "There is an easy"
+   ],
+   "alternatives": [
+    "There's no simple remedy for long-standing economic problems."
+   ]
+  },
+  {
+   "index": 120,
+   "kind": "negation",
+   "element": "言うべきでない",
+   "reference_sha256_16": "86d81254df96c3d2",
+   "accept": [
+    [
+     "should not",
+     "shouldn't",
+     "must not",
+     "mustn't",
+     "don't",
+     "do not",
+     "never",
+     "ought not",
+     "not supposed",
+     "not right",
+     "wrong"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "should not",
+    "should"
+   ],
+   "alternatives": [
+    "You shouldn't speak badly of people behind their backs."
+   ]
+  },
+  {
+   "index": 136,
+   "kind": "negation",
+   "element": "折れなかった",
+   "reference_sha256_16": "f69206d4dcc230f2",
+   "accept": [
+    [
+     "did not break",
+     "didn't break",
+     "not break",
+     "without breaking",
+     "never broke",
+     "did not snap",
+     "didn't snap",
+     "not broken",
+     "didn't give way",
+     "intact",
+     "unbroken",
+     "held"
+    ]
+   ],
+   "reject": [
+    "broke(?! not)",
+    "snapped"
+   ],
+   "corrupt": [
+    "did not break",
+    "broke"
+   ],
+   "alternatives": [
+    "The branch bent but remained intact.",
+    "The branch bent, but it didn't snap."
+   ]
+  },
+  {
+   "index": 147,
+   "kind": "negation",
+   "element": "よくありません",
+   "reference_sha256_16": "355d69b30b74a159",
+   "accept": [
+    [
+     "not so good",
+     "not as good",
+     "isn't as good",
+     "isn't so good",
+     "not good",
+     "worse",
+     "inferior",
+     "less good",
+     "not as nice"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "not so good as",
+    "as good as"
+   ],
+   "alternatives": [
+    "Mine is worse than yours."
+   ]
+  },
+  {
+   "index": 153,
+   "kind": "negation",
+   "element": "つないではいけない",
+   "reference_sha256_16": "9b12020f854a8103",
+   "accept": [
+    [
+     "don't",
+     "do not",
+     "never",
+     "mustn't",
+     "must not",
+     "shouldn't",
+     "should not",
+     "stop",
+     "avoid",
+     "not"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Don't run on",
+    "Run on"
+   ],
+   "alternatives": [
+    "You shouldn't string your sentences together with commas."
+   ]
+  },
+  {
+   "index": 157,
+   "kind": "negation",
+   "element": "好きではない",
+   "reference_sha256_16": "1fa49670325b095d",
+   "accept": [
+    [
+     "don't like",
+     "do not like",
+     "dislike",
+     "hate",
+     "not fond",
+     "don't enjoy",
+     "do not enjoy",
+     "don't want",
+     "do not want",
+     "not a fan",
+     "not like"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "don't like",
+    "like"
+   ],
+   "alternatives": [
+    "I dislike being fussed over."
+   ]
+  },
+  {
+   "index": 160,
+   "kind": "negation",
+   "element": "できなかった",
+   "reference_sha256_16": "30d09f302f895fa1",
+   "accept": [
+    [
+     "too drunk",
+     "couldn't",
+     "could not",
+     "unable",
+     "wasn't able",
+     "was not able",
+     "not able",
+     "can't",
+     "cannot",
+     "not possible"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "too drunk to drive",
+    "drunk but drove"
+   ],
+   "alternatives": [
+    "He was so drunk that he couldn't drive home."
+   ]
+  },
+  {
+   "index": 206,
+   "kind": "negation",
+   "element": "触れないでください",
+   "reference_sha256_16": "789f5f812552956e",
+   "accept": [
+    [
+     "don't",
+     "do not",
+     "never",
+     "mustn't",
+     "must not",
+     "shouldn't",
+     "should not",
+     "stop",
+     "no touching",
+     "not to touch",
+     "refrain",
+     "not touch",
+     "not handle"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Please don't touch",
+    "Please touch"
+   ],
+   "alternatives": [
+    "Do not touch the items on display."
+   ]
+  },
+  {
+   "index": 26,
+   "kind": "number",
+   "element": "二〇ポンド",
+   "reference_sha256_16": "c765823f63b93f0f",
+   "accept": [
+    [
+     "20",
+     "twenty(?!-)"
+    ],
+    [
+     "pounds?",
+     "£"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "20 pounds",
+    "30 pounds"
+   ],
+   "alternatives": [
+    "The repairs will probably cost twenty pounds at least."
+   ]
+  },
+  {
+   "index": 28,
+   "kind": "number",
+   "element": "６人",
+   "reference_sha256_16": "340cbbd1c86ef4ae",
+   "accept": [
+    [
+     "six(?!-)",
+     "6"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "for six",
+    "for seven"
+   ],
+   "alternatives": [
+    "I'd like rooms for six people."
+   ]
+  },
+  {
+   "index": 42,
+   "kind": "number",
+   "element": "３つ",
+   "reference_sha256_16": "a7b39df93cb46512",
+   "accept": [
+    [
+     "three(?!-)",
+     "3"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "three candies",
+    "two candies"
+   ],
+   "alternatives": [
+    "I gave each child three pieces of candy."
+   ]
+  },
+  {
+   "index": 77,
+   "kind": "number",
+   "element": "８ギガバイト",
+   "reference_sha256_16": "1c826f7824a536a0",
+   "accept": [
+    [
+     "8",
+     "eight"
+    ],
+    [
+     "gigabytes?",
+     "gb",
+     "gigs?"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "an 8-Gigabyte",
+    "a 4-Gigabyte"
+   ],
+   "alternatives": [
+    "I think an eight-gigabyte hard disk will be enough."
+   ]
+  },
+  {
+   "index": 98,
+   "kind": "number",
+   "element": "６時",
+   "reference_sha256_16": "463bba8bc7085bca",
+   "accept": [
+    [
+     "six(?!-)",
+     "6"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "six o'clock",
+    "seven o'clock"
+   ],
+   "alternatives": [
+    "Please come and get me at the hotel at 6."
+   ]
+  },
+  {
+   "index": 134,
+   "kind": "number",
+   "element": "四本",
+   "reference_sha256_16": "422195860daedbaf",
+   "accept": [
+    [
+     "four(?!-)",
+     "4"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "four legs",
+    "three legs"
+   ],
+   "alternatives": [
+    "Dogs have four legs."
+   ]
+  },
+  {
+   "index": 185,
+   "kind": "number",
+   "element": "７歳",
+   "reference_sha256_16": "e8bd4d02fa0457a6",
+   "accept": [
+    [
+     "seven(?!-)",
+     "7"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "was seven",
+    "was eleven"
+   ],
+   "alternatives": [
+    "I often wet the bed as a little kid, but stopped by age seven."
+   ]
+  },
+  {
+   "index": 197,
+   "kind": "number",
+   "element": "２度",
+   "reference_sha256_16": "b6ffa04209549b1c",
+   "accept": [
+    [
+     "two(?!-)",
+     "2",
+     "twice"
+    ],
+    [
+     "wars?"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "two world wars",
+    "three world wars"
+   ],
+   "alternatives": [
+    "In the modern era we have lived through two world wars that grew out of international disputes."
+   ]
+  },
+  {
+   "index": 201,
+   "kind": "number",
+   "element": "５０センチ",
+   "reference_sha256_16": "06b8ca5f8be6165e",
+   "accept": [
+    [
+     "50",
+     "fifty(?!-)"
+    ],
+    [
+     "centimet(?:er|re)s?",
+     "cm"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "50 centimeters",
+    "15 centimeters"
+   ],
+   "alternatives": [
+    "Sea levels are expected to rise by 50 cm by the end of next century."
+   ]
+  },
+  {
+   "index": 217,
+   "kind": "number",
+   "element": "３０００円",
+   "reference_sha256_16": "10b593cca454aa63",
+   "accept": [
+    [
+     "3,000",
+     "3000",
+     "three thousand",
+     "3 000"
+    ],
+    [
+     "yen",
+     "¥"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "3,000 yen",
+    "300 yen"
+   ],
+   "alternatives": [
+    "The record cost me 3000 yen."
+   ]
+  },
+  {
+   "index": 220,
+   "kind": "number",
+   "element": "13歳",
+   "reference_sha256_16": "64f9e03400ae2710",
+   "accept": [
+    [
+     "13",
+     "thirteen"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "13 years",
+    "15 years"
+   ],
+   "alternatives": [
+    "My first period came when I was thirteen."
+   ]
+  },
+  {
+   "index": 265,
+   "kind": "number",
+   "element": "１００ドル",
+   "reference_sha256_16": "cb1093568d31a36c",
+   "accept": [
+    [
+     "100",
+     "(?:one|a) hundred"
+    ],
+    [
+     "dollars?",
+     "usd",
+     "\\$"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "100 USD",
+    "150 USD"
+   ],
+   "alternatives": [
+    "It's $100 a night, not including tax.",
+    "One hundred dollars a night plus tax."
+   ]
+  },
+  {
+   "index": 276,
+   "kind": "number",
+   "element": "４年",
+   "reference_sha256_16": "99ca1bb0cb64bdbb",
+   "accept": [
+    [
+     "four(?!-)",
+     "4"
+    ],
+    [
+     "years?"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "four years",
+    "five years"
+   ],
+   "alternatives": [
+    "I have subscribed to that magazine for four years."
+   ]
+  },
+  {
+   "index": 298,
+   "kind": "number",
+   "element": "３日",
+   "reference_sha256_16": "ce86b7b2efef97f4",
+   "accept": [
+    [
+     "three(?!-)",
+     "3"
+    ],
+    [
+     "days?"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "three days",
+    "two days"
+   ],
+   "alternatives": [
+    "This week I watched subtitled foreign car-chase movies three days running."
+   ]
+  },
+  {
+   "index": 8,
+   "kind": "entity",
+   "element": "キャシー",
+   "reference_sha256_16": "bf86b0ea73570f16",
+   "accept": [
+    [
+     "kathy",
+     "cathy",
+     "kathie",
+     "cathie",
+     "kyashii",
+     "kyashī"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Kathy",
+    "Mary"
+   ],
+   "alternatives": [
+    "Talk of the devil — here's Kathy."
+   ]
+  },
+  {
+   "index": 49,
+   "kind": "entity",
+   "element": "トム",
+   "reference_sha256_16": "b3cdbd480dba1c9f",
+   "accept": [
+    [
+     "tom"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Tom loses",
+    "Ken loses"
+   ],
+   "alternatives": [
+    "Everyone keeps away from Tom because he flies into hysterics so easily."
+   ]
+  },
+  {
+   "index": 52,
+   "kind": "entity",
+   "element": "メキシコ",
+   "reference_sha256_16": "bcc014e36f7a6d95",
+   "accept": [
+    [
+     "mexico"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Mexico",
+    "Brazil"
+   ],
+   "alternatives": [
+    "We flew to Mexico."
+   ]
+  },
+  {
+   "index": 108,
+   "kind": "entity",
+   "element": "バグダッド",
+   "reference_sha256_16": "b1743659cabf4d53",
+   "accept": [
+    [
+     "baghdad",
+     "bagdad"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Baghdad",
+    "Basra"
+   ],
+   "alternatives": [
+    "Allied forces attacked her car at a checkpoint in Baghdad."
+   ]
+  },
+  {
+   "index": 126,
+   "kind": "entity",
+   "element": "訪日",
+   "reference_sha256_16": "1e80217aa06faf98",
+   "accept": [
+    [
+     "japan"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Japan",
+    "China"
+   ],
+   "alternatives": [
+    "The president postponed his visit to Japan."
+   ]
+  },
+  {
+   "index": 127,
+   "kind": "entity",
+   "element": "北海",
+   "reference_sha256_16": "726d152c3d7f1feb",
+   "accept": [
+    [
+     "north sea"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "North Sea",
+    "Baltic Sea"
+   ],
+   "alternatives": [
+    "The radio says a storm is coming in the North Sea."
+   ],
+   "excluded_alternatives": [
+    {
+     "sha256_16": "a1569dd7d89ba696",
+     "text": "According to the radio, a storm is imminent in the North.",
+     "why": "drops 'Sea': 北海 is the North Sea, not 'the North'"
+    }
+   ]
+  },
+  {
+   "index": 143,
+   "kind": "entity",
+   "element": "トニー",
+   "reference_sha256_16": "173be363707c4166",
+   "accept": [
+    [
+     "tony"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Tony",
+    "Tom"
+   ],
+   "alternatives": [
+    "I went to Kansai International Airport to see Tony off."
+   ]
+  },
+  {
+   "index": 155,
+   "kind": "entity",
+   "element": "エメット",
+   "reference_sha256_16": "f5fc1e38fda07baa",
+   "accept": [
+    [
+     "emmet",
+     "emmett"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Emmet's",
+    "Newton's"
+   ],
+   "alternatives": [
+    "The key point is that Emmett's theory does not contradict earlier theories in physics."
+   ]
+  },
+  {
+   "index": 195,
+   "kind": "entity",
+   "element": "佐藤",
+   "reference_sha256_16": "099741288da49d9d",
+   "accept": [
+    [
+     "sato",
+     "satou",
+     "satoh",
+     "satō"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Sato",
+    "Suzuki"
+   ],
+   "alternatives": [
+    "Someone called Sato came by while you were away."
+   ]
+  },
+  {
+   "index": 199,
+   "kind": "entity",
+   "element": "アルプス",
+   "reference_sha256_16": "0fb4ef9bc071e39e",
+   "accept": [
+    [
+     "alps",
+     "alpine"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Alps",
+    "Andes"
+   ],
+   "alternatives": [
+    "From the plane we enjoyed a magnificent view of the Alps."
+   ]
+  },
+  {
+   "index": 226,
+   "kind": "entity",
+   "element": "ロイヤル・シアター",
+   "reference_sha256_16": "ed850216c15f0895",
+   "accept": [
+    [
+     "royal theat(?:er|re)"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Royal Theater",
+    "Grand Theater"
+   ],
+   "alternatives": [
+    "The evening show at the Royal Theatre was over and the audience went home."
+   ]
+  },
+  {
+   "index": 234,
+   "kind": "entity",
+   "element": "ゴッホ",
+   "reference_sha256_16": "6aaec22a3c4aa09b",
+   "accept": [
+    [
+     "gogh"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Van Gogh",
+    "Monet"
+   ],
+   "alternatives": [
+    "He made a copy of a Van Gogh."
+   ]
+  },
+  {
+   "index": 295,
+   "kind": "entity",
+   "element": "大阪タワー",
+   "reference_sha256_16": "4d520b6a11002268",
+   "accept": [
+    [
+     "osaka"
+    ]
+   ],
+   "reject": [],
+   "corrupt": [
+    "Osaka Tower",
+    "Tokyo Tower"
+   ],
+   "alternatives": [
+    "We went up to the top of Osaka Tower."
+   ],
+   "judge_note": "the tower, not only the city: Osaka Tower"
+  },
+  {
+   "index": 31,
+   "kind": "referent",
+   "element": "彼を会長にした",
+   "reference_sha256_16": "04a7014ba97c527f",
+   "accept": [
+    [
+     "(?:made|named|elected|appointed|chose) him",
+     "he (?:was|became|has been)"
+    ]
+   ],
+   "reject": [
+    "(?:made|named|elected|appointed|chose) her"
+   ],
+   "corrupt": [
+    "made him president",
+    "made her president"
+   ],
+   "alternatives": [
+    "The association appointed him chairman."
+   ]
+  },
+  {
+   "index": 36,
+   "kind": "referent",
+   "element": "妻が自分を捨てた",
+   "reference_sha256_16": "7873bc8deac199e6",
+   "accept": [
+    [
+     "wife (?:had |has )?(?:left|abandoned|deserted|dumped|walked out on) him",
+     "wife (?:would|might|could|did) (?:leave|abandon|desert|dump)",
+     "(?:left|abandoned|deserted|dumped) by his wife"
+    ]
+   ],
+   "reject": [
+    "(?:he|he'd|he had) (?:left|abandoned|deserted) (?:his )?wife"
+   ],
+   "corrupt": [
+    "why his wife had left him",
+    "why he had left his wife"
+   ],
+   "alternatives": [
+    "He asked himself why his wife had walked out on him."
+   ]
+  },
+  {
+   "index": 150,
+   "kind": "referent",
+   "element": "男が私の財布を奪った",
+   "reference_sha256_16": "9f31015b73281187",
+   "accept": [
+    [
+     "(?:man|guy|fellow|he) (?:stole|took|robbed|snatched|grabbed)"
+    ],
+    [
+     "my (?:purse|wallet)",
+     "me of"
+    ]
+   ],
+   "reject": [
+    "I (?:stole|took|robbed|snatched|grabbed)"
+   ],
+   "corrupt": [
+    "The man robbed me of my purse",
+    "I robbed the man of his purse"
+   ],
+   "alternatives": [
+    "That man stole my wallet."
+   ]
+  },
+  {
+   "index": 183,
+   "kind": "referent",
+   "element": "彼女を救うために",
+   "reference_sha256_16": "6568b280776fb49f",
+   "accept": [
+    [
+     "(?:save|saving|rescue|rescuing) her"
+    ]
+   ],
+   "reject": [
+    "(?:save|saving|rescue|rescuing) him"
+   ],
+   "corrupt": [
+    "He risked his life to save her",
+    "She risked her life to save him"
+   ],
+   "alternatives": [
+    "He put his life on the line to rescue her."
+   ],
+   "judge_note": "the whole relationship: a male actor risks his life; the woman is the one rescued"
+  },
+  {
+   "index": 260,
+   "kind": "referent",
+   "element": "彼女に…やめるように",
+   "reference_sha256_16": "a8a41c960d5aeaac",
+   "accept": [
+    [
+     "(?:advised|told|urged|warned|counselled|counseled) her"
+    ],
+    [
+     "stop",
+     "quit",
+     "give up",
+     "cut (?:out|down)",
+     "cease",
+     "abstain",
+     "lay off",
+     "refrain",
+     "no more"
+    ]
+   ],
+   "reject": [
+    "keep (?:on )?drinking",
+    "continue drinking",
+    "start drinking",
+    "drink more"
+   ],
+   "corrupt": [
+    "He advised her",
+    "She advised him"
+   ],
+   "alternatives": [
+    "He told her she should stop drinking."
+   ],
+   "judge_note": "the whole relationship: a man advises a woman, and the advice is to stop drinking — cutting down is a different instruction"
+  },
+  {
+   "index": 288,
+   "kind": "referent",
+   "element": "彼が…倒れている",
+   "reference_sha256_16": "a31c16b1bdf9cb85",
+   "accept": [
+    [
+     "(?:found|discovered|located) him",
+     "him (?:lying|collapsed|fallen|down)"
+    ]
+   ],
+   "reject": [
+    "(?:found|discovered|located) her"
+   ],
+   "corrupt": [
+    "found him",
+    "found her"
+   ],
+   "alternatives": [
+    "The search team discovered him collapsed at the bottom of a cliff."
+   ]
+  }
+ ],
+ "clause_drops": [
+  {
+   "index": 32,
+   "reference_sha256_16": "c830f4e9ab6b4d05",
+   "drop": ", but because he was running short of money"
+  },
+  {
+   "index": 106,
+   "reference_sha256_16": "4df852e78e33a721",
+   "drop": ", and the injury was pretty serious"
+  },
+  {
+   "index": 185,
+   "reference_sha256_16": "e8bd4d02fa0457a6",
+   "drop": ", but I grew out of it by the time I was seven"
+  },
+  {
+   "index": 226,
+   "reference_sha256_16": "ed850216c15f0895",
+   "drop": ", and the audience had gone home"
+  },
+  {
+   "index": 259,
+   "reference_sha256_16": "f6471bd159b1ac64",
+   "drop": " There'll be a lot of tough questions.",
+   "note": "weaker omission probe: the dropped clause partly restates its neighbours, so less meaning is lost than in the other drops"
+  },
+  {
+   "index": 268,
+   "reference_sha256_16": "14457adb5b0d083b",
+   "drop": "After spending hours out in the cold winter wind, "
+  },
+  {
+   "index": 270,
+   "reference_sha256_16": "d3d3d5435d358517",
+   "drop": " It's entirely up to you."
+  },
+  {
+   "index": 296,
+   "reference_sha256_16": "371419939b20e44b",
+   "drop": ", but thought better of it"
+  }
+ ]
+}

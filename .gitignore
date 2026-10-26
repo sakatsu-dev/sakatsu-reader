@@ -1,0 +1,56 @@
+# Rust
+/target
+**/target
+# Cargo.lock IS committed: 屠つ is an application, so a reproducible dependency
+# graph is wanted (Rust's guidance is to commit it for binaries, ignore for libs).
+
+# Node / web frontend
+node_modules
+dist
+.vite
+ui/test-results/
+ui/playwright-report/
+
+# Tauri
+src-tauri/target
+src-tauri/gen
+# Generated from the installed Visual Studio redistributable immediately before a
+# Windows bundle build. The licensed DLLs belong in the installer, not source control.
+src-tauri/windows-runtime
+
+# Bundled models & sidecars (fetched, never committed)
+sidecars/models
+*.onnx
+*.bin
+*.safetensors
+
+# User data captured during dev
+*.log
+/scratch
+
+# Installer QA output: screenshots, transcripts and install logs from a sandbox run.
+# Artefacts of a run rather than source, stale the moment the next build happens, and they
+# carry the running machine's own paths. The harness that produces them *is* committed —
+# see .installer-qa/*.ps1. Same call as ui/test-results/ above.
+.installer-qa/results/
+# The sandbox config those scripts generate, which hardcodes host paths.
+*.wsb
+
+# Secrets: environment files and private keys. Nothing in the project uses either today; this
+# is so the first one ever created cannot be committed by accident. `.env.example`-style
+# templates, if one is ever wanted, are let back in by name.
+.env
+.env.*
+!.env.example
+*.pem
+
+# Python bytecode from scripts/
+__pycache__/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
+

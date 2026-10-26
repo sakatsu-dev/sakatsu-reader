@@ -1,0 +1,159 @@
+name: Prepare signed Windows release
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: main or an approved stable version tag
+        required: true
+        default: main
+permissions:
+  contents: read
+concurrency:
+  group: release-preparation
+  cancel-in-progress: false
+jobs:
+  resolve:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - id: revision
+        env:
+          REQUESTED_REF: ${{ inputs.revision }}
+        run: |
+          sha=$(python3 scripts/prepare-release.py revision --ref "$REQUESTED_REF")
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+  prepare:
+    needs: resolve
+    runs-on: windows-latest
+    environment: release
+    permissions:
+      contents: read
+      actions: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Validate required release configuration
+        env:
+          PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+          ENDPOINT: ${{ vars.TAURI_UPDATER_ENDPOINT }}
+          RELEASE_BASE_URL: ${{ vars.RELEASE_BASE_URL }}
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT: ${{ vars.SIGNPATH_PROJECT }}
+          SIGNPATH_POLICY: ${{ vars.SIGNPATH_POLICY }}
+        run: |
+          foreach ($name in 'PUBLIC_KEY','ENDPOINT','RELEASE_BASE_URL','SIGNPATH_ORGANIZATION_ID','SIGNPATH_PROJECT','SIGNPATH_POLICY') {
+            if (-not [Environment]::GetEnvironmentVariable($name)) { throw "Missing release input: $name" }
+          }
+          New-Item -ItemType Directory -Force target/release-prep | Out-Null
+          Set-Content -NoNewline -Encoding ascii target/release-prep/public-key.txt $env:PUBLIC_KEY
+          python scripts/prepare-release.py config --endpoint $env:ENDPOINT --public-key-file target/release-prep/public-key.txt --output target/release-prep/tauri.release.json
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Install pinned build tools
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal
+          rustup override set 1.99.0
+          cargo install tauri-cli --version 2.10.1 --locked
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Build application and release verifier
+        run: |
+          npm --prefix ui ci
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo tauri build --no-bundle --config target/release-prep/tauri.release.json -- --locked --no-default-features --bin sakatsu-desktop
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo build -p sakatsu-desktop --bin verify-release --release --locked
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - id: unsigned_app
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-app-${{ needs.resolve.outputs.sha }}
+          path: target/release/sakatsu-desktop.exe
+          if-no-files-found: error
+          retention-days: 7
+      - name: Sign application through approved SignPath policy
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY }}
+          github-artifact-id: ${{ steps.unsigned_app.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: target/release
+          parameters: |
+            sourceRevision: "${{ needs.resolve.outputs.sha }}"
+      - name: Bundle the signed executable
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          cargo tauri bundle --bundles nsis --config target/release-prep/tauri.release.json
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - id: unsigned_installer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-installer-${{ needs.resolve.outputs.sha }}
+          path: target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+          retention-days: 7
+      - name: Sign installer through approved SignPath policy
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY }}
+          github-artifact-id: ${{ steps.unsigned_installer.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: target/release-prep/final
+          parameters: |
+            sourceRevision: "${{ needs.resolve.outputs.sha }}"
+      - name: Sign final bytes, verify and inspect installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          RELEASE_BASE_URL: ${{ vars.RELEASE_BASE_URL }}
+          SOURCE_REVISION: ${{ needs.resolve.outputs.sha }}
+        run: |
+          $installers = @(Get-ChildItem target/release-prep/final -Filter '*-setup.exe' -Recurse)
+          if ($installers.Count -ne 1) { throw 'Expected exactly one signed installer' }
+          $installer = $installers[0].FullName
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          foreach ($file in @($installer, 'target/release/sakatsu-desktop.exe')) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file
+            if ($signature.Status -ne 'Valid' -or -not $signature.TimeStamperCertificate) { throw 'Authenticode or timestamp validation failed' }
+          }
+          & target/release/verify-release.exe sign $installer $version
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & target/release/verify-release.exe verify $installer "$installer.sig" target/release-prep/public-key.txt $version
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ./scripts/test-release-installer.ps1 -Installer $installer -DisposableEnvironment -PublicRelease -ResultFile target/release-prep/final/installer-qa.json
+          Copy-Item target/release-prep/tauri.release.json target/release-prep/final/build-config.json
+          Copy-Item target/release-prep/public-key.txt target/release-prep/final/public-key.txt
+          @{ installer_sha256 = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant(); updater_signature = $true; authenticode_installer = $true; authenticode_executable = $true } | ConvertTo-Json | Set-Content -Encoding utf8 target/release-prep/final/verification.json
+          git archive --format=zip --output=target/release-prep/final/source.zip $env:SOURCE_REVISION
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/prepare-release.py manifest --installer $installer --url "$env:RELEASE_BASE_URL/v$version/$([Uri]::EscapeDataString($installers[0].Name))" --revision $env:SOURCE_REVISION --output target/release-prep/final/manifest.json
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verified-release-${{ needs.resolve.outputs.sha }}
+          path: target/release-prep/final/
+          if-no-files-found: error
+          retention-days: 14

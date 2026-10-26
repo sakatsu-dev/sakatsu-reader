@@ -1,0 +1,627 @@
+{
+  "name": "Particle senses",
+  "description": "What each particle can mean, and the cues that favour one reading over another. Senses are shown to the learner whether or not a cue fires; ranking is an addition, never a filter.",
+  "particles": [
+    {
+      "surface": "で",
+      "romaji": [
+        "de"
+      ],
+      "note": "The one learners most often stall on, and the only common particle whose spelling is also an inflected form of something else: 静かで is the て-form of だ, not で at all.",
+      "senses": [
+        {
+          "id": "de-copula-te",
+          "label": "not で at all — the て-form of だ",
+          "gloss": "This is だ joining onto the next clause, the way て joins verbs: 静かで、きれいだ is \"it is quiet, and it is pretty\". Nothing is being marked here.",
+          "dictionary": [
+            "and",
+            "(and) then"
+          ],
+          "cues": [
+            {
+              "kind": "followed_by",
+              "surfaces": [
+                "、",
+                ",",
+                "，",
+                ", ",
+                "、 "
+              ],
+              "weight": 3
+            },
+            {
+              "kind": "preceding_pos",
+              "classes": [
+                "adj-na",
+                "形容動詞語幹"
+              ],
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "音楽が好きで、毎日聴いています。",
+              "english": "I like music, and I listen to it every day."
+            },
+            {
+              "japanese": "私は舞踏家が職業で、ジャズダンスを教えています。",
+              "english": "I am a dancer by trade and I teach jazz dance."
+            }
+          ]
+        },
+        {
+          "id": "de-place",
+          "label": "where the action happens",
+          "gloss": "The place an action is carried out. 図書館で勉強する — the studying happens at the library. Contrast に, which marks where something ends up or simply is.",
+          "dictionary": [
+            "at; in"
+          ],
+          "cues": [
+            {
+              "kind": "preceding_category",
+              "categories": [
+                "noun.location"
+              ],
+              "weight": 3
+            },
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "勉強する",
+                "働く",
+                "食べる",
+                "飲む",
+                "会う",
+                "買う",
+                "遊ぶ",
+                "寝る",
+                "read",
+                "読む",
+                "書く",
+                "待つ",
+                "住む",
+                "生まれる",
+                "died",
+                "死ぬ"
+              ],
+              "weight": 2
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "台所でお母さんの手伝いをしていたの。",
+              "english": "I helped my mother in the kitchen."
+            },
+            {
+              "japanese": "この公園でローラースケートをしてもいいですか。",
+              "english": "Can we roller-skate in this park?"
+            }
+          ]
+        },
+        {
+          "id": "de-means",
+          "label": "what it is done with",
+          "gloss": "The tool, vehicle or method used. 電車で行く — by train. ペンで書く — with a pen.",
+          "dictionary": [
+            "by; with"
+          ],
+          "cues": [
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "行く",
+                "来る",
+                "帰る",
+                "通う",
+                "移動する",
+                "送る",
+                "切る",
+                "洗う"
+              ],
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "歩いて行きますか？それともバスで行きますか？",
+              "english": "Will you go on foot or by bus?"
+            },
+            {
+              "japanese": "私は貴方が汽車で行くことを勧めます。",
+              "english": "I recommend you to go by train."
+            }
+          ]
+        },
+        {
+          "id": "de-material",
+          "label": "what it is made of",
+          "gloss": "The material something is made from. 木で作る — made out of wood.",
+          "dictionary": [],
+          "cues": [
+            {
+              "kind": "preceding_category",
+              "categories": [
+                "noun.substance",
+                "noun.plant"
+              ],
+              "weight": 2
+            },
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "作る",
+                "造る",
+                "つくる",
+                "できる"
+              ],
+              "weight": 2
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "この机は堅い材質の木でできている。",
+              "english": "This desk is made of hard wood."
+            },
+            {
+              "japanese": "その小さな像は純金でできていると言われている。",
+              "english": "The small statue is said to be made of fine gold."
+            }
+          ]
+        },
+        {
+          "id": "de-cause",
+          "label": "because of it",
+          "gloss": "The cause or reason. 病気で休む — off because of illness. Usually an event or a state rather than a thing.",
+          "dictionary": [],
+          "cues": [
+            {
+              "kind": "preceding_category",
+              "categories": [
+                "noun.event",
+                "noun.state",
+                "noun.phenomenon"
+              ],
+              "weight": 2
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "彼女は風邪でダウンした。",
+              "english": "She came down with a cold."
+            },
+            {
+              "japanese": "その建物の一部分だけが地震で破壊された。",
+              "english": "Only part of the building has been destroyed by the earthquake."
+            }
+          ]
+        },
+        {
+          "id": "de-limit",
+          "label": "within that much",
+          "gloss": "The amount, time or scope something happens inside. 三日で終わる — finished within three days. 日本で一番 — the most in Japan.",
+          "dictionary": [],
+          "cues": [
+            {
+              "kind": "preceding_counter",
+              "weight": 3
+            },
+            {
+              "kind": "preceding_category",
+              "categories": [
+                "noun.time",
+                "noun.quantity"
+              ],
+              "weight": 2
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "チケットは一週間で完売した。",
+              "english": "The tickets sold out within a week."
+            },
+            {
+              "japanese": "あと１０分で手が空く。",
+              "english": "I will be free in ten minutes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "を",
+      "romaji": [
+        "wo",
+        "o"
+      ],
+      "note": "Almost always the direct object. The two exceptions are worth knowing because they look wrong otherwise: a place can take を when it is left or passed through.",
+      "senses": [
+        {
+          "id": "wo-object",
+          "label": "what the action is done to",
+          "gloss": "The direct object. 本を読む — reading a book. This is what を is doing unless the verb is one of movement.",
+          "dictionary": [
+            "indicates direct object of action"
+          ],
+          "cues": [],
+          "examples": [
+            {
+              "japanese": "ジェーン自身がこの手紙を書いた。",
+              "english": "Jane wrote the letter herself."
+            },
+            {
+              "japanese": "先週の日曜日におかしな映画を見た。",
+              "english": "We saw a funny movie last Sunday."
+            }
+          ]
+        },
+        {
+          "id": "wo-departure",
+          "label": "the place being left",
+          "gloss": "With verbs of leaving, を marks what is departed from rather than what is acted on. 家を出る — leaving the house. 電車を降りる — getting off the train.",
+          "dictionary": [
+            "indicates point of departure or separation of action"
+          ],
+          "cues": [
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "出る",
+                "降りる",
+                "離れる",
+                "去る",
+                "卒業する"
+              ],
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "６時起床、７時家を出る。",
+              "english": "Got up at six, and left home at seven."
+            },
+            {
+              "japanese": "島を出る手だてはありません。",
+              "english": "There's no way off the island."
+            }
+          ]
+        },
+        {
+          "id": "wo-path",
+          "label": "the route travelled",
+          "gloss": "With verbs of motion, を marks the ground covered. 公園を歩く — walking through the park. 橋を渡る — crossing the bridge.",
+          "dictionary": [
+            "indicates an area traversed"
+          ],
+          "cues": [
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "歩く",
+                "走る",
+                "渡る",
+                "飛ぶ",
+                "通る",
+                "登る",
+                "泳ぐ"
+              ],
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "私たちは並木道を歩いた。",
+              "english": "We walked along an avenue lined with trees."
+            },
+            {
+              "japanese": "ワシが空を飛んでいる。",
+              "english": "An eagle is flying in the sky."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "に",
+      "romaji": [
+        "ni"
+      ],
+      "note": "The widest of the five. Most of its readings are separated by the verb rather than by the noun.",
+      "senses": [
+        {
+          "id": "ni-existence",
+          "label": "where something is",
+          "gloss": "With いる and ある, に marks where a thing simply is. 部屋にいる — being in the room. Contrast で, which marks where something is *done*.",
+          "dictionary": [
+            "at (place, time); in; on; during"
+          ],
+          "cues": [
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "いる",
+                "ある",
+                "住む",
+                "座る",
+                "立つ"
+              ],
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "机の上に本があります。",
+              "english": "There is a book on the desk."
+            },
+            {
+              "japanese": "この市にはいくつもの映画館がある。",
+              "english": "There are many movie theaters in this city."
+            }
+          ]
+        },
+        {
+          "id": "ni-destination",
+          "label": "where it ends up",
+          "gloss": "The place something moves to. 学校に行く — going to school. Interchangeable with へ here, though へ stresses the direction rather than the arrival.",
+          "dictionary": [
+            "to (direction, state); toward; into"
+          ],
+          "cues": [
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "行く",
+                "来る",
+                "帰る",
+                "着く",
+                "入る",
+                "乗る"
+              ],
+              "weight": 1
+            },
+            {
+              "kind": "preceding_category",
+              "categories": [
+                "noun.location"
+              ],
+              "weight": 2
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "生徒達はみんな家に帰りました。",
+              "english": "All the students have gone home."
+            },
+            {
+              "japanese": "ヘレンは昨年日本に来た。",
+              "english": "Helen came to Japan last year."
+            }
+          ]
+        },
+        {
+          "id": "ni-time",
+          "label": "when it happens",
+          "gloss": "A point in time. 三時に会う — meeting at three. Used with clock times and dates, not with 今日 or 明日.",
+          "dictionary": [
+            "at (place, time); in; on; during"
+          ],
+          "cues": [
+            {
+              "kind": "preceding_counter",
+              "weight": 2
+            },
+            {
+              "kind": "preceding_category",
+              "categories": [
+                "noun.time"
+              ],
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "彼は６月にオランダから帰国しました。",
+              "english": "He returned from Holland in June."
+            },
+            {
+              "japanese": "スピーチコンテストは１１月９日に行われた。",
+              "english": "The speech contest took place on the ninth of November."
+            }
+          ]
+        },
+        {
+          "id": "ni-recipient",
+          "label": "who receives it",
+          "gloss": "The person something is given, told or shown to. 友達に話す — telling a friend.",
+          "dictionary": [],
+          "cues": [
+            {
+              "kind": "preceding_category",
+              "categories": [
+                "noun.person"
+              ],
+              "weight": 3
+            },
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "あげる",
+                "くれる",
+                "渡す",
+                "話す",
+                "教える",
+                "見せる",
+                "送る"
+              ],
+              "weight": 2
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "君にこのペンダントをあげるよ。",
+              "english": "I'll give you this pendant."
+            },
+            {
+              "japanese": "私たちは父にバースデイプレゼントをあげるつもりです。",
+              "english": "We will give Father a birthday present."
+            }
+          ]
+        },
+        {
+          "id": "ni-purpose",
+          "label": "what it is for",
+          "gloss": "With a verb stem before it and a motion verb after, に marks the errand. 買い物に行く — going shopping.",
+          "dictionary": [
+            "for (purpose)"
+          ],
+          "cues": [
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "行く",
+                "来る",
+                "帰る",
+                "出かける"
+              ],
+              "weight": 1
+            },
+            {
+              "kind": "preceding_conjugates",
+              "conjugates": true,
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "映画を見に行きませんか。",
+              "english": "How about going to the movies?"
+            },
+            {
+              "japanese": "ちょっとそこまでコーヒーを飲みに行く。",
+              "english": "Come round the corner for coffee."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "が",
+      "romaji": [
+        "ga"
+      ],
+      "note": "The class worth learning is the second one: a set of predicates that take が where English would use an object, which is why 日本語が分かる is not a mistake.",
+      "senses": [
+        {
+          "id": "ga-subject",
+          "label": "who or what does it",
+          "gloss": "The subject, picked out as new information or as the specific one. 誰が来た？ — who came?",
+          "dictionary": [
+            "indicates the subject of a sentence"
+          ],
+          "cues": [],
+          "examples": [
+            {
+              "japanese": "まもなく雨が降りそうだ。",
+              "english": "It is going to rain soon."
+            },
+            {
+              "japanese": "家へついたら電話が鳴っていた。",
+              "english": "The telephone was ringing when I got home."
+            }
+          ]
+        },
+        {
+          "id": "ga-object-like",
+          "label": "what is liked, wanted or understood",
+          "gloss": "A group of predicates take が where English takes an object: 好き, 嫌い, 上手, ほしい, できる, 分かる, 見える, 聞こえる. 日本語が分かる — I understand Japanese. Nothing is being marked as the doer here.",
+          "dictionary": [],
+          "cues": [
+            {
+              "kind": "predicate",
+              "surfaces": [
+                "好き",
+                "嫌い",
+                "上手",
+                "下手",
+                "得意",
+                "苦手",
+                "ほしい",
+                "欲しい",
+                "できる",
+                "出来る",
+                "分かる",
+                "わかる",
+                "見える",
+                "聞こえる",
+                "必要"
+              ],
+              "weight": 3
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "欠点があるけどやはり彼が好きです。",
+              "english": "I love him despite his faults."
+            },
+            {
+              "japanese": "画像のアップロードの仕方が分かりません。",
+              "english": "I can't figure out how to upload an image."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "は",
+      "romaji": [
+        "ha",
+        "wa"
+      ],
+      "note": "は against が is information structure, not word meaning — which is why the cues here are thin and this mostly shows the readings rather than choosing between them.",
+      "senses": [
+        {
+          "id": "wa-topic",
+          "label": "what the sentence is about",
+          "gloss": "Sets the topic — everything after it is a comment on this. 私は学生です — as for me, student. It does not mark the subject; it says what is being discussed.",
+          "dictionary": [
+            "indicates sentence topic"
+          ],
+          "cues": [],
+          "examples": [
+            {
+              "japanese": "私の父は会社員です。",
+              "english": "My father is an office worker."
+            },
+            {
+              "japanese": "日本は世界のハイテク産業のリーダーだ。",
+              "english": "Japan is a leader in the world's high-tech industry."
+            }
+          ]
+        },
+        {
+          "id": "wa-contrast",
+          "label": "this one, as against others",
+          "gloss": "Singles something out against alternatives. コーヒーは飲みます — coffee I do drink (implying something else I do not). A second は in the same sentence is usually this.",
+          "dictionary": [
+            "indicates contrast with another option (stated or unstated)"
+          ],
+          "cues": [
+            {
+              "kind": "second_wa",
+              "weight": 2
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "私たちはボストンまでは行きませんでした。",
+              "english": "We didn't go as far as Boston."
+            },
+            {
+              "japanese": "「コーヒーのお替わりいる？」「うん、ぼくのは少なめ、弟のには多めについでね」",
+              "english": "\"Do you want another cup of coffee?\" \"Sure, make mine on the small side but be generous with my brother's.\""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

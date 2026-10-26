@@ -1,0 +1,15 @@
+# Translation metrics for maintainers — evaluation only, never shipped. Python 3.11.
+# The CPU wheel of torch:  pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+unbabel-comet==2.2.7
+pytorch-lightning==2.6.6
+transformers==4.57.6
+tokenizers==0.22.2
+sentencepiece==0.2.2
+protobuf==4.25.9
+huggingface_hub==0.36.2
+safetensors==0.8.0
+numpy==1.26.4
+scipy==1.17.1
+sacrebleu==2.6.0
+requests==2.34.2
