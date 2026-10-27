@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Downloads the manga-ocr recognition model into the user profile.
 

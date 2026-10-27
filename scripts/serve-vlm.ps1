@@ -1,4 +1,4 @@
-# Serve an OCR vision-language model with vLLM, for measurement against the corpus.
+﻿# Serve an OCR vision-language model with vLLM, for measurement against the corpus.
 #
 #   pwsh -File scripts/serve-vlm.ps1 paddle-vl        # the general model
 #   pwsh -File scripts/serve-vlm.ps1 paddle-vl-manga  # the manga fine-tune

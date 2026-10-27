@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Takes a verifiable snapshot of the source tree, and optionally the built installers.
 

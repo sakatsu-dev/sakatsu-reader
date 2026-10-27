@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Run everything, including the tests `cargo test` leaves out — and say which ones
     actually executed.

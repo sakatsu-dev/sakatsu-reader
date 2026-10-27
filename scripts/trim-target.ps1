@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Delete build artifacts nothing can reach any more.
 

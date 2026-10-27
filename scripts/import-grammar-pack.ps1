@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Rebuilds core/src/grammar/packs/hanabira.json from its CC0 source.
 

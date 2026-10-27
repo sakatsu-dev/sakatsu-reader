@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Downloads the PP-OCRv6 (small) recognition models into the user profile.
 

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Build the kanji details used by the reference page.
 

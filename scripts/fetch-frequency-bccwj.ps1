@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Downloads the BCCWJ frequency list, which orders search results by how common a word is.
 

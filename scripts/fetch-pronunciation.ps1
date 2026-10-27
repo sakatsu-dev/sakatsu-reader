@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Install Tofugu's open Japanese vocabulary pronunciation archive for offline playback.
 

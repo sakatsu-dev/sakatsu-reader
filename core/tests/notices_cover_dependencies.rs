@@ -58,6 +58,13 @@ fn resolved_graph(package: &str, features: &[&str]) -> Vec<String> {
     let mut command = std::process::Command::new(env!("CARGO"));
     command
         .args(["tree", "-p", package, "--edges", "normal"])
+        // The notices accompany the Windows release, not a desktop build for the test host.
+        // Share the generator's target so a Linux CI run checks the same shipped graph.
+        .args([
+            "--locked",
+            "--target",
+            include_str!("../../scripts/notices-target.txt").trim(),
+        ])
         .args(["--prefix", "none", "--format", "{p}"])
         // Offline because the lockfile is complete and a test must not reach the network. A
         // missing lock entry fails loudly here rather than silently resolving something new.

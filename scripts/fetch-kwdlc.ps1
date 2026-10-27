@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Fetch KWDLC — gold segmentation that does *not* come from UniDic.
 

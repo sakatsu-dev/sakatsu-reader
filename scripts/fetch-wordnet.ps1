@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Build the noun → semantic-category table that sharpens particle senses.
 

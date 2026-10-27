@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Fetch JESC — subtitle Japanese, the closest freely-licensed register to this app's domain.
 

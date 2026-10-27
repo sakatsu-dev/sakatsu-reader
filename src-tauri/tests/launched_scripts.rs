@@ -7,8 +7,9 @@
 //! **Windows PowerShell 5.1 reads a script with no byte-order mark in the machine's ANSI
 //! codepage.** On a Japanese install that is CP932, where `0x9E` — the last byte of 語 in
 //! UTF-8 — is a lead byte, so it swallowed the quote that closed the string after it. Every
-//! line from there on was misparsed. No script in `scripts/` carries a BOM, and a reading tool
-//! for Japanese has more users on `ja-JP` than most software does.
+//! line from there on was misparsed. Manual scripts with non-ASCII text now carry a UTF-8 BOM;
+//! app-launched scripts remain ASCII. Both conventions are enforced below, not inferred from
+//! whichever locale happens to run CI.
 //!
 //! It would have shipped. Nothing in the suite read the scripts, and the developer machine was
 //! `pwsh`. So the shipped path is asserted here instead: that the scripts the app spawns need no
@@ -48,9 +49,8 @@ fn all_scripts() -> Vec<PathBuf> {
 
 /// The spawned scripts contain nothing that needs decoding, so no codepage can corrupt them.
 ///
-/// A byte-order mark would also fix it, but no script here has one and adding it to some of them
-/// would leave a convention that is true of most files and silently load-bearing on a few. ASCII
-/// is checkable without knowing any of that.
+/// Manual scripts may use a checked UTF-8 BOM. Keep the stricter ASCII rule for app-launched
+/// scripts, whose console-opening path must remain independent of decoding and editor settings.
 #[test]
 fn every_script_the_app_launches_is_pure_ascii() {
     for name in LAUNCHED {
@@ -73,6 +73,36 @@ fn every_script_the_app_launches_is_pure_ascii() {
             );
         }
     }
+}
+
+fn has_portable_encoding(bytes: &[u8]) -> bool {
+    bytes.is_ascii()
+        || bytes
+            .strip_prefix(&[0xef, 0xbb, 0xbf])
+            .is_some_and(|text| std::str::from_utf8(text).is_ok())
+}
+
+#[test]
+fn every_script_declares_non_ascii_encoding_before_powershell_reads_it() {
+    for path in all_scripts() {
+        let bytes = std::fs::read(&path).expect("script bytes");
+        assert!(
+            has_portable_encoding(&bytes),
+            "{}: use ASCII or UTF-8 with BOM; PowerShell 5.1 otherwise uses the host ANSI codepage",
+            path.display()
+        );
+    }
+}
+
+#[test]
+fn the_encoding_guard_rejects_implicit_or_malformed_utf8() {
+    let unicode = "Write-Output 'Japanese: 日本語; punctuation: —'".as_bytes();
+    assert!(!has_portable_encoding(unicode));
+    assert!(has_portable_encoding(
+        &[&[0xef, 0xbb, 0xbf], unicode].concat()
+    ));
+    assert!(!has_portable_encoding(&[0xef, 0xbb, 0xbf, 0xff]));
+    assert!(has_portable_encoding(b"Write-Output 'ASCII'"));
 }
 
 /// A new spawn site means a new script whose parse failure nobody would see.

@@ -14,7 +14,8 @@ file does not name.
 
 # What counts as shipping
 
-`cargo tree --edges normal` for the desktop binary, which excludes dev-dependencies and
+`cargo tree --edges normal` for the Windows desktop target in `scripts/notices-target.txt`,
+regardless of the generator's host. This excludes dev-dependencies and
 build-dependencies -- neither is distributed. Plus the npm packages whose code is in the bundle
 the webview loads; the toolchain that builds it (Vite, TypeScript, svelte-check) is not.
 
@@ -35,6 +36,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "src-tauri" / "THIRD-PARTY-NOTICES.txt"
+NOTICES_TARGET = (ROOT / "scripts" / "notices-target.txt").read_text(encoding="utf-8").strip()
 
 LICENCE_FILES = ("LICENSE", "LICENCE", "COPYING", "NOTICE", "UNLICENSE")
 RULE = "=" * 78
@@ -46,6 +48,7 @@ def shipped_crates():
     out = subprocess.run(
         [
             "cargo", "tree", "-p", "sakatsu-desktop",
+            "--locked", "--target", NOTICES_TARGET,
             "--edges", "normal", "--prefix", "none", "--format", "{p}",
         ],
         cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True,
@@ -66,7 +69,7 @@ def crate_metadata():
     """Where each package lives on disk, and what it declares."""
     meta = json.loads(
         subprocess.run(
-            ["cargo", "metadata", "--format-version", "1", "--all-features"],
+            ["cargo", "metadata", "--locked", "--format-version", "1", "--all-features"],
             cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True,
         ).stdout
     )

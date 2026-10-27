@@ -1,4 +1,4 @@
-# Fetch quantised manga-ocr exports beside the installed model, for measurement.
+﻿# Fetch quantised manga-ocr exports beside the installed model, for measurement.
 #
 # The app ships the fp32 export (461 MB, from mayocream/manga-ocr-onnx). onnx-community
 # publishes the *same base model* at eight precisions, down to 74 MB. Whether any of them

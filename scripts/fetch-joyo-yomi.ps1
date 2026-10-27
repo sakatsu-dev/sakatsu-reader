@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Fetch the JoyoKanji-Yomi benchmark — an independent test of the readings this app shows.
 

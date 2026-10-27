@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Safely reclaim all Cargo build storage for this workspace.
 

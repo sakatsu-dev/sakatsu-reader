@@ -58,6 +58,13 @@ use, disables incremental/debug output, and caches downloads rather than compile
 The TypeScript contract and both clippy feature configurations remain separate checks.
 Both Rust jobs first fetch locked dependency sources because offline licence checks inspect
 the desktop and optional-feature graphs too, including crates not compiled by the core job.
+The notices generator and its checker share `scripts/notices-target.txt`, so both inspect the
+shipped Windows target rather than silently changing their scope with the machine running them.
+
+PowerShell scripts must be ASCII or UTF-8 with BOM so Windows PowerShell 5.1 can read them on
+any ANSI codepage. App-launched scripts retain the stricter ASCII rule. The desktop suite checks
+these bytes and also asks the real PowerShell 5.1 parser to read every script.
+
 Both Rust jobs verify/cache the pinned Jitendex archive outside the checkout. An existing
 particle-distribution test needs its licensed example corpus; no private report or personal
 profile is used. The archive's size/hash are checked even on cache hits, and a hermetic test
