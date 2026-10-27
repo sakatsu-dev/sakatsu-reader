@@ -56,6 +56,8 @@ targets, and removes only completed test executables inside its explicitly owned
 Dependencies and normal binaries remain available. The job records target accounting and disk
 use, disables incremental/debug output, and caches downloads rather than compiled targets.
 The TypeScript contract and both clippy feature configurations remain separate checks.
+Both Rust jobs first fetch locked dependency sources because offline licence checks inspect
+the desktop and optional-feature graphs too, including crates not compiled by the core job.
 Both Rust jobs verify/cache the pinned Jitendex archive outside the checkout. An existing
 particle-distribution test needs its licensed example corpus; no private report or personal
 profile is used. The archive's size/hash are checked even on cache hits, and a hermetic test

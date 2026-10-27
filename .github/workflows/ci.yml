@@ -55,6 +55,10 @@ jobs:
           key: ${{ runner.os }}-cargo-core-downloads-v2-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-core-downloads-v2-
 
+      # Offline licence tests inspect the desktop and optional-feature graphs too.
+      # Fetch locked sources without compiling desktop/system-library dependencies here.
+      - run: cargo fetch --locked
+
       # -p sakatsu-core, not --workspace: pulling in src-tauri here would defeat the
       # point of this job, and would also drag in xcap and arboard, which need X11
       # development headers this runner does not have.
@@ -105,6 +109,8 @@ jobs:
             ~/.cargo/git/db
           key: ${{ runner.os }}-cargo-downloads-v2-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-downloads-v2-
+
+      - run: cargo fetch --locked
 
       # No frontend build first: debug builds serve `devUrl`, so ui/dist (which is
       # gitignored) is not needed to compile or test.
