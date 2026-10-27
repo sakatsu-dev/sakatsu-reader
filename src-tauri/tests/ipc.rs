@@ -2097,7 +2097,9 @@ fn the_serialized_search_matches_the_golden_the_ui_checks() {
     }
     assert_eq!(
         std::fs::read_to_string(golden)
-            .expect("search golden; UPDATE_GOLDEN=1 explicitly regenerates it"),
+            .expect("search golden; UPDATE_GOLDEN=1 explicitly regenerates it")
+            // Git may check JSON out as CRLF on Windows. Preserve every other wire byte.
+            .replace("\r\n", "\n"),
         generated
     );
 }

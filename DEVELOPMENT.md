@@ -49,7 +49,35 @@ npm --prefix ui run check:layout                    # system Edge layout/scale m
 cargo tauri dev                                     # run the app; first build takes a few minutes
 ```
 
-CI (`.github/workflows/ci.yml`) runs exactly these, so green locally is green there.
+CI (`.github/workflows/ci.yml`) runs these checks. On Linux, the core suite runs one Cargo
+test target at a time through `scripts/ci-core-tests.py`, including library/binary harnesses,
+integration tests and doctests. It discovers targets from Cargo metadata, reports feature-gated
+targets, and removes only completed test executables inside its explicitly owned target directory.
+Dependencies and normal binaries remain available. The job records target accounting and disk
+use, disables incremental/debug output, and caches downloads rather than compiled targets.
+The TypeScript contract and both clippy feature configurations remain separate checks.
+Both Rust jobs verify/cache the pinned Jitendex archive outside the checkout. An existing
+particle-distribution test needs its licensed example corpus; no private report or personal
+profile is used. The archive's size/hash are checked even on cache hits, and a hermetic test
+keeps the CI pin aligned with the catalog. No model is downloaded for these jobs.
+
+The committed catalog-size fixture is verified without local reports. Regenerate it intentionally
+after changing artifact metadata:
+
+```powershell
+cargo run -p sakatsu-core --bin generate-catalog-report
+# An additional report can be written with: -- --output PATH
+```
+
+Layout tests pin Japanese text roles and the Japanese fallback in mixed prose to Yu Gothic UI,
+retaining Segoe UI for Latin, and verify the rendered platform font
+before each worker begins. Production typography is unchanged. Font diagnostics include the
+runner image, Edge version and the previous serif choice's actual fallback. Review affected
+screenshots when changing these test fonts; do not raise tolerances to hide font differences.
+The layout runner builds an isolated QA bundle and serves it with Vite preview. This avoids
+opening hundreds of development-module requests per page on Windows. The normal production
+build separately verifies that QA fixtures are absent; the layout build verifies they are present.
+
 Note `cargo tauri dev`, not `npm run tauri` — the npm CLI is deliberately not a
 dependency of `ui/`. A running `cargo tauri dev` holds a lock on
 `target/debug/sakatsu-desktop.exe`, so stop the app before running the tests.

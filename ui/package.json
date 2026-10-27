@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/qa-build-boundary.mjs dist production",
     "preview": "vite preview",
     "check:layout": "node scripts/run-layout-tests.mjs",
     "check": "node scripts/run-unit-tests.mjs && svelte-check --tsconfig ./tsconfig.json",

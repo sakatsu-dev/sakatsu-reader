@@ -1,7 +1,8 @@
 # CI for 屠つ (Sakatsu).
 #
-# Runs exactly the checks DEVELOPMENT.md tells you to run locally, so green locally
-# means green here. Split by what each platform actually proves:
+# Runs the checks documented in DEVELOPMENT.md. Linux runs each Cargo test target
+# separately so linked executables do not exhaust the hosted runner's disk.
+# Split by what each platform actually proves:
 #
 #   core    — sakatsu-core on Linux with no webview system libraries installed.
 #             That is what *proves* the core stayed platform-independent, which
@@ -31,8 +32,18 @@ jobs:
   core:
     name: core (linux)
     runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "2"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Isolate CI paths
+        run: |
+          echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sakatsu-ci-target" >> "$GITHUB_ENV"
+          echo "SAKATSU_DICT_DIR=$RUNNER_TEMP/sakatsu-ci-data" >> "$GITHUB_ENV"
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -41,9 +52,8 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
-            target
-          key: ${{ runner.os }}-cargo-core-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-core-
+          key: ${{ runner.os }}-cargo-core-downloads-v2-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-core-downloads-v2-
 
       # -p sakatsu-core, not --workspace: pulling in src-tauri here would defeat the
       # point of this job, and would also drag in xcap and arboard, which need X11
@@ -51,21 +61,40 @@ jobs:
       #
       # Two things make this job slower than it looks: `ort` downloads an ONNX Runtime
       # build at compile time (so the job needs network, not just the crates index),
-      # and `tokenizers`' oniguruma backend compiles C. Both land in the cache above.
+      # and `tokenizers`' oniguruma backend compiles C. Compiled output stays local to this job.
       #
-      # The tests that need Ichiran, a dictionary or a model are all `#[ignore]`d, so
-      # this runs the hermetic suite only. They still have to *compile* here, which is
-      # why nothing platform-specific may leak into core.
-      - run: cargo test -p sakatsu-core
+      # Model/Ichiran checks remain explicitly ignored. The ordinary particle-distribution
+      # check uses the verified example corpus below. All test targets still compile here,
+      # which is why nothing platform-specific may leak into core.
+      - run: python3 -m unittest discover -s scripts
+      - name: Cache pinned test corpus
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/sakatsu-ci-data
+          key: ${{ runner.os }}-ci-dictionary-v1-${{ hashFiles('scripts/ci-test-data.json') }}
+      - run: python3 scripts/ci-test-data.py --destination "$SAKATSU_DICT_DIR" --download
+      - run: python3 scripts/ci-core-tests.py --target-dir "$CARGO_TARGET_DIR" --log-dir "$RUNNER_TEMP/sakatsu-ci-logs"
       - run: cargo test -p sakatsu-core --features typescript --test typescript_contract
       - run: cargo clippy -p sakatsu-core --features typescript --all-targets -- -D warnings
       - run: cargo clippy -p sakatsu-core --all-targets -- -D warnings
+
+      - name: Upload core test accounting
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-accounting-${{ github.run_id }}
+          path: ${{ runner.temp }}/sakatsu-ci-logs
+          if-no-files-found: warn
 
   desktop:
     name: desktop (windows)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Isolate test data
+        run: |
+          "SAKATSU_DICT_DIR=$(Join-Path $env:RUNNER_TEMP 'sakatsu-ci-data')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -74,15 +103,20 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          key: ${{ runner.os }}-cargo-downloads-v2-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-downloads-v2-
 
       # No frontend build first: debug builds serve `devUrl`, so ui/dist (which is
       # gitignored) is not needed to compile or test.
       # The Windows config bundles the C++ runtime DLLs, which are generated rather than committed;
       # tauri-build will not compile the desktop crate until they exist.
       - run: node scripts/stage-vc-runtime.mjs
+      - name: Cache pinned test corpus
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/sakatsu-ci-data
+          key: ${{ runner.os }}-ci-dictionary-v1-${{ hashFiles('scripts/ci-test-data.json') }}
+      - run: python scripts/ci-test-data.py --destination "$env:SAKATSU_DICT_DIR" --download
       - run: cargo test --workspace
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
@@ -129,6 +163,14 @@ jobs:
       # browser is downloaded or cached.
       - run: npm ci
       - run: npm run check:layout
+
+      - name: Upload font diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: layout-fonts-${{ github.run_id }}
+          path: ui/test-results/layout/font-environment-*.json
+          if-no-files-found: warn
 
       - name: Upload layout diagnostics
         if: failure()

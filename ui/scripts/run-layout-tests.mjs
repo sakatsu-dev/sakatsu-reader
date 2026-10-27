@@ -1,17 +1,33 @@
 import { once } from "node:events";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import { verifyQaBoundary } from "./qa-build-boundary.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const vite = resolve(root, "node_modules/vite/bin/vite.js");
 const playwright = resolve(root, "node_modules/@playwright/test/cli.js");
 let serverLog = "";
 
-const server = spawn(process.execPath, [vite, "--host", "127.0.0.1"], {
+// Bundle once: repeatedly loading hundreds of dev modules exhausted Windows socket buffers.
+// This separate output retains QA fixtures; the normal build checks that it excludes them.
+const build = spawn(process.execPath, [vite, "build", "--mode", "layout"], {
   cwd: root,
   windowsHide: true,
-  stdio: ["ignore", "pipe", "pipe"],
+  stdio: "inherit",
 });
+const [buildCode] = await once(build, "exit");
+if (buildCode !== 0) process.exit(typeof buildCode === "number" ? buildCode : 1);
+await verifyQaBoundary(resolve(root, "test-results/layout-app"), "layout");
+
+const server = spawn(
+  process.execPath,
+  [vite, "preview", "--mode", "layout", "--outDir", "test-results/layout-app"],
+  {
+    cwd: root,
+    windowsHide: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  },
+);
 server.stdout.on("data", (chunk) => (serverLog += String(chunk)));
 server.stderr.on("data", (chunk) => (serverLog += String(chunk)));
 
