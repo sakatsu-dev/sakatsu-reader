@@ -744,8 +744,11 @@ mod tests {
             command.args(["-NoProfile", "-Command", "Start-Sleep -Seconds 5"]);
             command
         } else {
-            let mut command = Command::new("sh");
-            command.args(["-c", "sleep 5"]);
+            // Exercise the owned child, as the PowerShell branch does. A shell can leave
+            // sleep alive with inherited pipes after the shell is killed, testing a
+            // descendant-process policy rather than this child's deadline.
+            let mut command = Command::new("sleep");
+            command.arg("5");
             command
         };
         let started = Instant::now();
