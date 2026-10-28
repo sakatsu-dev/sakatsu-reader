@@ -117,6 +117,27 @@ fn filenames_do_not_collide_inside_a_component() {
     }
 }
 
+/// A checksum on the publisher's rotating URL broke fresh installs after republication.
+/// Keep the dated mirror and cache identity together; a data refresh is a separate change.
+#[test]
+fn kanjidic_uses_the_immutable_snapshot_without_changing_its_bytes() {
+    let component = catalog::find("kanji").expect("kanji component");
+    let artifact = component
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.file == "kanjidic2.xml.gz")
+        .expect("KANJIDIC artifact");
+    assert_eq!(
+        artifact.url,
+        "https://github.com/sakatsu-dev/reader-resources/releases/download/kanjidic2-2026-10-18/kanjidic2-20261018.xml.gz"
+    );
+    assert_eq!(artifact.expected_bytes(), Some(1_488_573));
+    assert_eq!(
+        artifact.sha256(),
+        Some("6182a700e08a8f6a6646529b77f84f0d963ed33cd5c7516ff19e4ee642345446")
+    );
+}
+
 /// The gate can detect what it claims to detect.
 ///
 /// Every drift check in this repository carries one of these, and this project treats that as

@@ -58,7 +58,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$SOURCE = 'https://www.edrdg.org/kanjidic/kanjidic2.xml.gz'
+# The publisher replaces its original URL; use the same immutable snapshot as setup.
+$SOURCE = 'https://github.com/sakatsu-dev/reader-resources/releases/download/kanjidic2-2026-10-18/kanjidic2-20261018.xml.gz'
+$KANJIDIC_BYTES = 1488573
+$KANJIDIC_SHA256 = '6182a700e08a8f6a6646529b77f84f0d963ed33cd5c7516ff19e4ee642345446'
 $KANJIVG_SOURCE = 'https://github.com/KanjiVG/kanjivg/releases/download/r20260714/kanjivg-20260714-main.zip'
 $KRAD_SOURCE = 'http://ftp.edrdg.org/pub/Nihongo/kradfile.gz'
 
@@ -74,11 +77,26 @@ $krad = Join-Path $work 'kradfile.gz'
 Write-Host "KANJIDIC2 (EDRDG, CC BY-SA 4.0)" -ForegroundColor Cyan
 if (-not (Test-Path $xml)) {
     Invoke-WebRequest -Uri $SOURCE -OutFile $gz -UseBasicParsing
-    $in = [System.IO.File]::OpenRead($gz)
-    $out = [System.IO.File]::Create($xml)
-    $stream = New-Object System.IO.Compression.GzipStream($in, [System.IO.Compression.CompressionMode]::Decompress)
-    $stream.CopyTo($out)
-    $stream.Dispose(); $out.Dispose(); $in.Dispose()
+    if ((Get-Item -LiteralPath $gz).Length -ne $KANJIDIC_BYTES -or
+        (Get-FileHash -LiteralPath $gz -Algorithm SHA256).Hash -ne $KANJIDIC_SHA256) {
+        throw 'KANJIDIC2 does not match the pinned snapshot; no table was built.'
+    }
+    # PowerShell names are case-insensitive: $out would overwrite the typed Out parameter.
+    # Publish XML only after decompression completes, so a retry never reuses a partial file.
+    $xmlStage = "$xml.$([guid]::NewGuid().ToString('N')).partial"
+    try {
+        $archiveInput = [System.IO.File]::OpenRead($gz)
+        try {
+            $xmlOutput = [System.IO.File]::Create($xmlStage)
+            try {
+                $gzipReader = New-Object System.IO.Compression.GzipStream($archiveInput, [System.IO.Compression.CompressionMode]::Decompress)
+                try { $gzipReader.CopyTo($xmlOutput) } finally { $gzipReader.Dispose() }
+            } finally { $xmlOutput.Dispose() }
+        } finally { $archiveInput.Dispose() }
+        Move-Item -LiteralPath $xmlStage -Destination $xml
+    } finally {
+        if (Test-Path -LiteralPath $xmlStage) { Remove-Item -LiteralPath $xmlStage -Force }
+    }
 }
 Write-Host "  $([math]::Round((Get-Item $xml).Length / 1MB, 1)) MB"
 

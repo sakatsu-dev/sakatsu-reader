@@ -17,9 +17,9 @@
 //! download 404s. `tests/catalog_matches_scripts.rs` parses the `.ps1` files and asserts
 //! every URL here appears in the matching one.
 //!
-//! Every required artifact is pinned to release metadata and checksummed. The EDRDG files do not
-//! publish immutable historical URLs, so a deliberate catalog refresh updates their exact bytes
-//! and hashes in the same change; an upstream change can never silently become this release.
+//! Every required artifact is pinned to release metadata and checksummed. KANJIDIC2 uses an
+//! immutable mirror release: EDRDG republishes its original URL in place, which otherwise breaks
+//! fresh installs even when this release's catalog has not changed.
 
 use std::fmt;
 
@@ -321,14 +321,11 @@ pub fn all() -> &'static [Component] {
             home: "https://www.edrdg.org/wiki/index.php/KANJIDIC_Project",
             tier: Tier::Essential,
             artifacts: &[
-                // **This URL is not versioned: EDRDG replaces the file in place**, so the pin
-                // breaks whenever they republish, and every fresh install then stops at "Kanji
-                // details". Re-pinned 2026-10-18 to the file published that day (Last-Modified
-                // 02:35 GMT); earlier pins held from 2026-08-23 and 2026-10-13. The 10-18 file
-                // builds a kanji table byte-identical to the 10-13 one. The lasting fix is to point
-                // this at a copy published at an immutable URL — recorded as a follow-up.
+                // EDRDG replaces its original URL in place. This immutable mirror retains the
+                // exact 2026-10-18 bytes, so existing caches and offline packages remain valid.
+                // A newer snapshot needs a separate release and a deliberate catalog refresh.
                 Artifact {
-                    url: "https://www.edrdg.org/kanjidic/kanjidic2.xml.gz",
+                    url: "https://github.com/sakatsu-dev/reader-resources/releases/download/kanjidic2-2026-10-18/kanjidic2-20261018.xml.gz",
                     file: "kanjidic2.xml.gz",
                     min_bytes: MB,
                     expected_bytes: Some(1_488_573),

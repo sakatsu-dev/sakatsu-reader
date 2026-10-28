@@ -18,6 +18,114 @@
 
 use std::path::PathBuf;
 
+/// Exercise the real script from an empty output tree, without network or installed data.
+/// Synthetic pins apply only to the temporary script copy; production pins remain unchanged.
+#[cfg(windows)]
+#[test]
+fn fresh_kanji_script_verifies_and_publishes_only_complete_xml() {
+    use sha2::Digest;
+    use std::io::Write;
+
+    let dir = scratch_guard::Scratch::new("setup-build", "fresh-script");
+    let script = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../scripts/fetch-kanjidic.ps1"),
+    )
+    .unwrap();
+    let artifact = &sakatsu_core::setup::catalog::find("kanji")
+        .unwrap()
+        .artifacts[0];
+    let xml = br#"<?xml version="1.0" encoding="UTF-8"?><kanjidic2><character><literal>&#39135;</literal><misc><stroke_count>9</stroke_count><grade>2</grade></misc><reading_meaning><rmgroup><reading r_type="ja_on">&#12471;&#12519;&#12463;</reading><meaning>eat</meaning></rmgroup></reading_meaning></character></kanjidic2>"#;
+    let mut gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    gzip.write_all(xml).unwrap();
+    let valid = gzip.finish().unwrap();
+    let wrapper = dir.join("run.ps1");
+    std::fs::write(
+        &wrapper,
+        r#"param($Source, $Out, $Archive)
+$ErrorActionPreference = 'Stop'
+function Invoke-WebRequest {
+    param($Uri, $OutFile, [switch]$UseBasicParsing)
+    Copy-Item -LiteralPath $Archive -Destination $OutFile
+}
+try { & $Source -Out $Out } catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
+"#,
+    )
+    .unwrap();
+
+    for (case, bytes, wrong_hash) in [
+        ("valid", valid.as_slice(), false),
+        ("wrong-hash", valid.as_slice(), true),
+        ("broken-gzip", b"not a gzip archive".as_slice(), false),
+    ] {
+        let out = dir.join(case);
+        let work = out.join("work");
+        std::fs::create_dir_all(&work).unwrap();
+        // This script stages the supplemental archives; Rust performs their conversion.
+        std::fs::write(work.join("kanjivg-20260714-main.zip"), b"staged").unwrap();
+        std::fs::write(work.join("kradfile.gz"), b"staged").unwrap();
+        let archive = dir.join(format!("{case}.gz"));
+        std::fs::write(&archive, bytes).unwrap();
+        let hash = if wrong_hash {
+            "0".repeat(64)
+        } else {
+            sha2::Sha256::digest(bytes)
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect()
+        };
+        let size_pin = format!("$KANJIDIC_BYTES = {}", artifact.expected_bytes().unwrap());
+        let hash_pin = format!("$KANJIDIC_SHA256 = '{}'", artifact.sha256().unwrap());
+        assert_eq!(script.matches(&size_pin).count(), 1);
+        assert_eq!(script.matches(&hash_pin).count(), 1);
+        let fixture = dir.join(format!("{case}.ps1"));
+        std::fs::write(
+            &fixture,
+            script
+                .replace(&size_pin, &format!("$KANJIDIC_BYTES = {}", bytes.len()))
+                .replace(&hash_pin, &format!("$KANJIDIC_SHA256 = '{hash}'")),
+        )
+        .unwrap();
+        let result = std::process::Command::new("powershell.exe")
+            // A PowerShell 7 parent can export its module path; let 5.1 use its own modules.
+            .env_remove("PSModulePath")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+            .arg(&wrapper)
+            .arg("-Source")
+            .arg(&fixture)
+            .arg("-Out")
+            .arg(&out)
+            .arg("-Archive")
+            .arg(&archive)
+            .output()
+            .unwrap();
+        if case == "valid" {
+            assert!(
+                result.status.success(),
+                "{case}: {}",
+                String::from_utf8_lossy(&result.stderr)
+            );
+            let table = std::fs::read_to_string(out.join("kanjidic.tsv")).unwrap();
+            assert!(table.starts_with("食\tショク\t"), "{table}");
+        } else {
+            assert!(!result.status.success(), "{case} unexpectedly succeeded");
+            assert!(!out.join("kanjidic.tsv").exists());
+            assert!(!work.join("kanjidic2.xml").exists());
+            if wrong_hash {
+                assert!(String::from_utf8_lossy(&result.stderr)
+                    .contains("KANJIDIC2 does not match the pinned snapshot"));
+            }
+        }
+        assert!(!std::fs::read_dir(&work).unwrap().any(|entry| entry
+            .unwrap()
+            .path()
+            .extension()
+            .is_some_and(|ext| ext == "partial")));
+    }
+}
+
 #[path = "common/scratch.rs"]
 mod scratch_guard;
 
@@ -178,10 +286,14 @@ fn the_catalog_urls_still_answer() {
 
     let started = std::time::Instant::now();
     let mut last = 0u64;
-    let written = sakatsu_core::setup::download(
+    let written = sakatsu_core::setup::download_verified(
         artifact.url,
         &target,
         artifact.min_bytes,
+        sakatsu_core::setup::Verification {
+            expected_bytes: Some(artifact.expected_bytes().expect("catalog size is pinned")),
+            sha256: Some(artifact.sha256().expect("catalog digest is pinned")),
+        },
         &Arc::new(AtomicBool::new(false)),
         &mut |progress| last = progress.done,
     )

@@ -317,6 +317,28 @@ fixtures only ever agree with whatever their author believed:
 cargo test -p sakatsu-core --test jitendex_live -- --ignored --nocapture
 ```
 
+### Versioned resource snapshots
+
+KANJIDIC2 is downloaded from a dated, immutable release in
+[sakatsu-dev/reader-resources](https://github.com/sakatsu-dev/reader-resources).
+The publisher's original URL changes in place, so it cannot preserve an older catalog pin.
+The application and `fetch-kanjidic.ps1` use the same snapshot, exact size and SHA-256.
+Its installed filename and offline-package identity stay unchanged.
+
+For a resource refresh, prepare and verify a new attributed snapshot, upload all assets to a
+draft release, then publish with immutable releases enabled. Keep previous releases available.
+Update the catalog, fetch script and offline manifest together if the bytes change. Do not use
+`latest`, replace a published asset, or remove checksum verification to recover setup.
+
+Verify the real endpoint with:
+
+```powershell
+cargo test -p sakatsu-core --test setup_build the_catalog_urls_still_answer -- --ignored --exact --nocapture
+```
+
+That explicit test downloads 1.4 MiB, verifies the catalog size and SHA-256, builds the kanji
+table and checks a known reading. It is ignored in the offline suite.
+
 ### Setting it up without a terminal
 
 The installer carries the app plus its small Windows runtime dependencies. Everything large is
