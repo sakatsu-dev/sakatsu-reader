@@ -84,6 +84,11 @@ jobs:
         with:
           path: .cache/webview
           key: webview-v1-${{ hashFiles('scripts/webview2-runtime.json') }}
+      - name: Verify the runtime before compiling build tools
+        run: |
+          $pin = Get-Content scripts/webview2-runtime.json -Raw | ConvertFrom-Json
+          python scripts/prepare-webview.py --destination "src-tauri/$($pin.directory)" --cache .cache/webview --download
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Install pinned build tools
         run: |
           rustup toolchain install 1.99.0 --profile minimal

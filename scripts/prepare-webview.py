@@ -96,6 +96,19 @@ def archive(spec, cache, download=False, opener=None):
             temporary.unlink(missing_ok=True)
 
 
+def extracted_runtime(expanded, spec, files):
+    expanded = Path(expanded)
+    if verify_directory(expanded, spec, files):
+        return expanded
+    # Microsoft's CAB has one versioned wrapper. Accept only that exact wrapper,
+    # with no siblings, and still verify every enclosed filename and binary byte.
+    children = list(expanded.iterdir())
+    wrapped = expanded / spec["directory"]
+    if children == [wrapped] and verify_directory(wrapped, spec, files):
+        return wrapped
+    raise ValueError("Extracted runtime does not match the pinned file inventory or its sole versioned wrapper")
+
+
 def prepare(destination, cache, download=False, root=ROOT):
     spec, files = specification(root)
     destination = Path(destination)
@@ -115,8 +128,7 @@ def prepare(destination, cache, download=False, root=ROOT):
         staged.mkdir()
         subprocess.run(["expand.exe", "-F:*", str(cab.resolve()), str(staged.resolve())],
                        check=True, stdout=subprocess.DEVNULL)
-        if not verify_directory(staged, spec, files):
-            raise ValueError("Extracted runtime does not match the pinned file inventory")
+        staged = extracted_runtime(staged, spec, files)
         # Publication is one rename after complete validation, never a partially populated runtime.
         staged.rename(destination)
     return destination

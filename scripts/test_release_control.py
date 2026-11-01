@@ -158,6 +158,22 @@ class RuntimeTests(unittest.TestCase):
             file.write_bytes(data)
             runtime.specification(self.root)
 
+    def test_cab_wrapper_is_exact_and_never_skips_inventory_checks(self):
+        expanded = self.root / 'expanded'
+        wrapped = expanded / self.spec['directory']
+        wrapped.mkdir(parents=True)
+        exe = wrapped / 'msedgewebview2.exe'
+        exe.write_bytes(self.body)
+        self.assertEqual(runtime.extracted_runtime(expanded, self.spec, self.files), wrapped)
+        extra = expanded / 'unexpected.txt'
+        extra.write_text('extra')
+        with self.assertRaises(ValueError):
+            runtime.extracted_runtime(expanded, self.spec, self.files)
+        extra.unlink()
+        exe.write_bytes(b'corrupt')
+        with self.assertRaises(ValueError):
+            runtime.extracted_runtime(expanded, self.spec, self.files)
+
     def test_cache_and_download_are_strict_and_incomplete_files_not_published(self):
         import io
         class Response(io.BytesIO):
