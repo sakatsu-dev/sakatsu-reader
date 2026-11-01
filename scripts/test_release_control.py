@@ -190,9 +190,27 @@ class EvidenceTests(unittest.TestCase):
     def test_source_scan_permits_synthetic_ipc_path_and_refuses_real_paths(self):
         release.audit_source_text(r'C:\Users\someone\ichiran\ichiran-cli.exe')
         with self.assertRaises(ValueError):
-            release.audit_source_text(r'C:\Users\actual-reader\private.txt')
+            release.audit_source_text('C:' + r'\Users\actual-reader\private.txt')
         with self.assertRaises(ValueError):
             release.audit_source_text('gh' + 'p_' + 'a'*30)
+
+    def test_source_guard_accepts_its_own_negative_test_fixture(self):
+        release.audit_source_text(Path(__file__).read_text(encoding='utf-8'))
+
+    def test_archive_guard_names_the_refused_member(self):
+        import io
+        import zipfile
+        for content, refused in [(r'C:\Users\someone\example.txt', False),
+                                 ('C:' + r'\Users\actual-reader\private.txt', True)]:
+            archive = io.BytesIO()
+            with zipfile.ZipFile(archive, 'w') as files:
+                files.writestr('fixture.rs', content)
+            archive.seek(0)
+            if refused:
+                with self.assertRaisesRegex(ValueError, 'fixture.rs'):
+                    release.audit_source_archive(archive)
+            else:
+                release.audit_source_archive(archive)
 
     def test_existing_evidence_is_immutable(self):
         with tempfile.TemporaryDirectory() as folder:

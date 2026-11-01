@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -179,6 +180,28 @@ def audit_source_text(text):
         raise ValueError("Source archive contains a user path or credential-shaped value")
 
 
+def audit_source_archive(source):
+    with zipfile.ZipFile(source) as archive:
+        for item in archive.infolist():
+            if item.is_dir():
+                continue
+            try:
+                text = archive.read(item).decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+            try:
+                audit_source_text(text)
+            except ValueError:
+                raise ValueError(f"Source audit refused {item.filename}") from None
+
+
+def audit_source_revision(sha):
+    if not SHA.fullmatch(sha):
+        raise ValueError("An immutable source identity is required")
+    source = subprocess.check_output(["git", "archive", "--format=zip", sha], cwd=ROOT)
+    audit_source_archive(io.BytesIO(source))
+
+
 def verify_payload(payload, built_app):
     payload = Path(payload)
     runtime = load_tool("prepare-webview")
@@ -246,16 +269,7 @@ def package_preview(installer, payload, built_app, qa_path, sha, destination, ve
     shutil.copy2(installer, target)
     source = destination / "source.zip"
     subprocess.run(["git", "archive", "--format=zip", "--output=" + str(source.resolve()), sha], cwd=ROOT, check=True)
-    with zipfile.ZipFile(source) as archive:
-        for item in archive.infolist():
-            if item.is_dir():
-                continue
-            data = archive.read(item)
-            try:
-                text = data.decode("utf-8")
-            except UnicodeDecodeError:
-                continue
-            audit_source_text(text)
+    audit_source_archive(source)
     config = ROOT / "target/preview-build-config.json"
     shutil.copy2(config, destination / "build-config.json")
     runtime, _ = load_tool("prepare-webview").specification()
@@ -304,6 +318,8 @@ def resolve_preview(repo, revision, verify_only=False):
         raise ValueError("Release tag and application version disagree")
     if json.loads(read(".github/release-please/manifest.json"))["."] != current:
         raise ValueError("Release manifest and application version disagree")
+    # Check the actual Git archive before spending time on CI or a Windows build.
+    audit_source_revision(sha)
     releases = api(repo, "releases?per_page=100")
     found = [r for r in releases if r["tag_name"] == "v" + current]
     if len(found) > 1:
@@ -411,6 +427,8 @@ def main():
     for name in ("installer", "payload", "built-app", "qa", "sha", "output"):
         p.add_argument("--" + name, required=True)
     p.add_argument("--verify-only", action="store_true")
+    p = sub.add_parser("audit-source")
+    p.add_argument("--sha", required=True)
     args = parser.parse_args()
     if args.command == "bump-plan":
         print(json.dumps(bump_plan(args.root, args.version)))
@@ -427,6 +445,9 @@ def main():
     elif args.command == "package-preview":
         print(json.dumps(package_preview(args.installer, Path(args.payload), args.built_app, args.qa,
                                          args.sha, args.output, args.verify_only)))
+    elif args.command == "audit-source":
+        audit_source_revision(args.sha)
+        print("Exact source archive audit passed")
     else:
         publish_draft(args.repo, args.directory)
 
