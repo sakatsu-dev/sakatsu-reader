@@ -73,6 +73,10 @@ export const FIND = {
       keywords:
         "analyzer ichiran built-in automatic parsing segmentation engine offline local advanced",
     },
+    preloadIchiran: {
+      label: "Preload Ichiran at startup",
+      keywords: "ichiran preload startup launch start background warm first passage load latency memory",
+    },
     ichiranServer: {
       label: "Keep Ichiran running between passages",
       keywords:
@@ -164,7 +168,7 @@ export const FIND = {
     indexes: {
       label: "Update dictionary indexes",
       keywords:
-        "index indexes rebuild update dictionary definitions spellings redirect cross reference "
+        "dictionary import publisher automatic updates index indexes rebuild update dictionary definitions spellings redirect cross reference "
         + "maintenance upgrade sequence gloss kanji offline local no download repair arrow",
     },
     frequency: {
@@ -185,11 +189,6 @@ export const FIND = {
       label: "Name the source",
       keywords:
         "source dictionary credit attribution jitendex jmnedict badge chip name",
-    },
-    cards: {
-      label: "Click once to focus, twice to open",
-      keywords:
-        "click card focus open expand two step hover chevron tab disclosure reference glossary result",
     },
   },
   recognition: {

@@ -42,6 +42,7 @@
   // The search index, and where each row lives. Out of this file so a test can check that
   // what it claims and what the markup renders are the same thing — see `settings-index.js`.
   import { FIND, anyMatch, matches, search } from "./settings-index.js";
+  import DictionaryManager from "./DictionaryManager.svelte";
   import type { DictionaryUpkeep } from "../model";
   import { errorMessage } from "./save-notice.js";
   import PalettePicker from "./PalettePicker.svelte";
@@ -125,13 +126,13 @@
     markReadingGuesses = $bindable(),
     showWordParts = $bindable(),
     markSeenOnFocus = $bindable(),
-    focusBeforeOpen = $bindable(),
     tabNavigation = $bindable(),
     fontSize = $bindable(),
     readerScale = $bindable(),
     panelScale = $bindable(),
     quiet = $bindable(),
     ichiranServer = $bindable(),
+    preloadIchiran = $bindable(),
     checkUpdatesOnStartup = $bindable(true),
     oninstallupdate,
     logging = $bindable(),
@@ -201,8 +202,6 @@
     markReadingGuesses: boolean;
     showWordParts: boolean;
     markSeenOnFocus: boolean;
-    /** Two clicks to open a result card — focus, then open — rather than a tab revealed on hover. */
-    focusBeforeOpen: boolean;
     /** Restore conventional Windows Tab traversal and click focus throughout the app. */
     tabNavigation: boolean;
     fontSize: number;
@@ -210,6 +209,7 @@
     panelScale: number;
     quiet: boolean;
     ichiranServer: boolean;
+    preloadIchiran: boolean;
     checkUpdatesOnStartup?: boolean;
     oninstallupdate: () => Promise<UpdateStatus>;
     logging: boolean;
@@ -1162,7 +1162,7 @@
         </div>
       </div>
 
-      <div class="block" hidden={!some(FIND.reading.analyzer, FIND.reading.ichiranServer)}>
+      <div class="block" hidden={!some(FIND.reading.analyzer, FIND.reading.ichiranServer, FIND.reading.preloadIchiran)}>
         <h4 class="subhead">How the text is read</h4>
         <div class="cluster">
           <div class="item" hidden={!hit(FIND.reading.analyzer)}>
@@ -1190,6 +1190,21 @@
             {#if analyzer !== "builtin" && ichiranOffer && !ichiranOffer.ready}
               <IchiranSetup size={ichiranOffer.size} {onadopt} />
             {/if}
+          </div>
+          <div class="item" hidden={!hit(FIND.reading.preloadIchiran)}>
+            <label class="row">
+              <span>Preload Ichiran at startup</span>
+              <input type="checkbox" bind:checked={preloadIchiran} />
+            </label>
+            <p class="note">Start it in the background for a quicker first passage. Applies next launch.</p>
+            <details class="more">
+              <summary>More <span class="offscreen">about {FIND.reading.preloadIchiran.label}</span></summary>
+              <p>
+                The window opens first. With Keep Ichiran running enabled, its session stays ready
+                in memory; otherwise only readiness is checked. Off, Ichiran starts when needed.
+                Built-in mode does not preload Ichiran.
+              </p>
+            </details>
           </div>
           <div class="item" hidden={!hit(FIND.reading.ichiranServer)}>
             <label class="row">
@@ -1923,6 +1938,7 @@
 
     {#if section === "search"}
     <div class="group">
+      <div class="block" hidden={!some(FIND.search.indexes)}><DictionaryManager /></div>
       <div class="block" hidden={!some(FIND.search.indexes)}>
         <h4 class="subhead">Dictionary indexes</h4>
         <div class="cluster">
@@ -2086,27 +2102,6 @@
         </div>
       </div>
 
-      <div class="block" hidden={!some(FIND.search.cards)}>
-        <h4 class="subhead">Opening a result</h4>
-        <div class="cluster">
-          <div class="item" hidden={!hit(FIND.search.cards)}>
-            <label class="row">
-              <span>Click once to focus, twice to open</span>
-              <input type="checkbox" bind:checked={focusBeforeOpen} />
-            </label>
-            <p class="note">Off, one click opens a result. Either way the keyboard reaches every one.</p>
-            <details class="more">
-              <summary>More <span class="offscreen">about {FIND.search.cards.label}</span></summary>
-              <p>
-                A click lifts a card; a second click opens it. Off, one click opens it. Either way a
-                click on an open card's heading closes it, the card stays selectable — copying a word or
-                dragging across a definition never opens anything — and Tab, the arrow keys and Enter
-                reach every result from the keyboard.
-              </p>
-            </details>
-          </div>
-        </div>
-      </div>
     </div>
     {/if}
 

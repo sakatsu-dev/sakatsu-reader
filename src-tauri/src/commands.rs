@@ -2685,6 +2685,23 @@ pub struct OcrEngineState {
 /// load, so `read_frame` blocks on the warm already running and then uses it, rather than
 /// starting a second one.
 pub fn warm_ocr_in_the_background<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
+    warm_ocr(app, false);
+}
+
+/// Startup has an explicit loading surface, so prepare the selected OCR before capture.
+pub fn warm_ocr_on_startup<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
+    warm_ocr(app, true);
+}
+
+fn warm_ocr<R: tauri::Runtime>(app: tauri::AppHandle<R>, startup: bool) {
+    use tauri::Manager;
+    let Some(ocr) = app.try_state::<OcrState>() else {
+        return;
+    };
+    // Claim before spawning: the first status read must see queued work as loading too.
+    if !ocr.begin_warming(startup) {
+        return;
+    }
     static GENERATION: AtomicU64 = AtomicU64::new(0);
     std::thread::spawn(move || {
         use tauri::Manager;
@@ -2692,6 +2709,11 @@ pub fn warm_ocr_in_the_background<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
             return;
         };
         let chosen = ocr.chosen_name();
+        if chosen == "stub" {
+            // Do not cache an unavailable engine before first-run setup installs its models.
+            ocr.warming.store(false, Ordering::Release);
+            return;
+        }
         let lane = if chosen == "vlm" {
             crate::work::Lane::Vlm
         } else {
@@ -2704,18 +2726,17 @@ pub fn warm_ocr_in_the_background<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
             priority: WorkPriority::Speculative,
         };
         let Ok(_permit) = crate::work::scheduler().enter(lane, Some(request)) else {
+            ocr.warming.store(false, Ordering::Release);
             return;
         };
         // Unloaded on purpose: nothing reloads it behind the reader's back.
-        if !ocr.wants_warming() || ocr.is_ready() || ocr.held_back.load(Ordering::Acquire) {
-            return;
-        }
-        if ocr.warming.swap(true, Ordering::AcqRel) {
+        if ocr.held_back.load(Ordering::Acquire) {
+            ocr.warming.store(false, Ordering::Release);
             return;
         }
 
         let started = std::time::Instant::now();
-        let loaded = ocr.engine();
+        let loaded = ocr.warmed_engine();
         ocr.warming.store(false, Ordering::Release);
 
         match &loaded {
@@ -2751,9 +2772,8 @@ pub fn warm_ocr_in_the_background<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
 
 /// The recognition engine, loaded on first use.
 ///
-/// Lazily, because the model is ~440 MB: a learner who only ever pastes text should
-/// not pay half a second and a large mapping at every startup for a feature they are
-/// not using. The first capture pays it once.
+/// Startup prepares the selected engine in the background. Switching a conventional engine
+/// later remains lazy, and an explicitly unloaded engine stays unloaded until requested.
 pub struct OcrState {
     manga_dir: PathBuf,
     paddle_dir: PathBuf,
@@ -2904,47 +2924,36 @@ impl OcrState {
 
     /// Whether the engine is loaded — the one question that must be answerable *during* a load.
     pub fn is_ready(&self) -> bool {
-        self.ready.load(Ordering::Relaxed)
+        self.ready.load(Ordering::Relaxed) && !self.warming.load(Ordering::Acquire)
     }
 
-    /// Whether the selected engine is worth loading before anybody asks for it.
-    ///
-    /// **PaddleOCR-VL alone, and the asymmetry is the whole reason.** Its load is not a load at
-    /// all: it starts a local llama.cpp server and waits up to twenty seconds for `/health` to
-    /// answer, measured at 7.6 s cold. The in-process engines map an ONNX model in around half
-    /// a second, and the struct doc above records the trade that buys — a learner who only
-    /// pastes text should not pay ~440 MB resident at every startup for a feature they never
-    /// use. Pre-paying half a second costs more than it saves; pre-paying twenty does not.
-    ///
-    /// The cost also lands somewhere different. A warmed VLM is a subprocess holding its
-    /// weights on the graphics card, started by an opt-in the reader was walked through and
-    /// stopped again when the window closes — not half a gigabyte added to this process for
-    /// everyone who ever opened the settings panel.
-    ///
-    /// A custom endpoint is included and costs nothing: `engine()` will not launch a process it
-    /// does not own, so the load is a `VlmOcr::new` and returns immediately.
+    /// Outside startup, only a VLM selection is preloaded: its managed server startup is
+    /// substantially longer than a conventional model load. Startup has its own explicit warm
+    /// request; later conventional switches retain their lazy behavior. External endpoints
+    /// only initialize a client and never start a process owned by someone else.
     fn wants_warming(&self) -> bool {
         self.chosen() == OcrChoice::Vlm
     }
 
-    /// Which engine this *would* use, without loading it.
-    pub fn engine_name(&self) -> String {
-        if let Some(engine) = self
-            .loaded
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .as_ref()
+    fn begin_warming(&self, startup: bool) -> bool {
+        if (!startup && !self.wants_warming())
+            || self.is_ready()
+            || self.held_back.load(Ordering::Acquire)
         {
-            return engine.engine().to_string();
+            return false;
         }
-        self.chosen_name()
+        !self.warming.swap(true, Ordering::AcqRel)
+    }
+
+    /// Loaded engine if available, otherwise the selected one, without waiting on a model load.
+    pub fn engine_name(&self) -> String {
+        self.status().loaded.unwrap_or_else(|| self.chosen_name())
     }
 
     /// The name of the engine the settings ask for, touching only `choice`.
     ///
-    /// Split out of [`OcrState::engine_name`], which reports the *loaded* engine first and takes
-    /// the load lock to do it. This is what the loading hint needs, and the hint is emitted
-    /// precisely while that lock is held.
+    /// The loading hint needs the selection even while the model lock is held. Status reads
+    /// also use this directly so they cannot recurse through the loaded-engine readout.
     fn chosen_name(&self) -> String {
         match self.chosen() {
             OcrChoice::Auto if AutoOcr::is_present(&self.manga_dir, &self.paddle_dir) => {
@@ -3008,8 +3017,8 @@ impl OcrState {
             Hosting::InProcess
         };
         let describe = |engine: Option<&Arc<dyn Ocr>>| match engine {
+            _ if self.warming.load(Ordering::Acquire) => (EngineState::Loading, None),
             Some(engine) => (EngineState::Ready, Some(engine.engine().to_string())),
-            None if self.warming.load(Ordering::Relaxed) => (EngineState::Loading, None),
             None if configured == "stub" => (EngineState::NotInstalled, None),
             None => (EngineState::NotLoaded, None),
         };
@@ -3036,6 +3045,30 @@ impl OcrState {
             hosting,
             state,
             acceleration,
+        }
+    }
+
+    fn warmed_engine(&self) -> Result<Arc<dyn Ocr>, String> {
+        let engine = self.engine()?;
+        if let Err(error) = engine.warm() {
+            self.discard_failed_warm(&engine);
+            return Err(error.to_string());
+        }
+        Ok(engine)
+    }
+
+    fn discard_failed_warm(&self, failed: &Arc<dyn Ocr>) {
+        let mut loaded = self
+            .loaded
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        // A newer settings choice or capture must not lose its engine to an old warmup.
+        if loaded
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, failed))
+        {
+            *loaded = None;
+            self.ready.store(false, Ordering::Release);
         }
     }
 
@@ -4242,6 +4275,76 @@ mod runtime_unpack_tests {
 #[cfg(test)]
 mod ocr_state_tests {
     use super::*;
+    use sakatsu_core::ocr::OcrError;
+
+    #[test]
+    fn a_real_warm_failure_releases_the_cached_engine_for_retry() {
+        struct Fails;
+        impl Ocr for Fails {
+            fn recognize(&self, _: &OcrImage) -> Result<String, OcrError> {
+                panic!("warmup ran recognition")
+            }
+            fn engine(&self) -> &str {
+                "warm-fails"
+            }
+            fn warm(&self) -> Result<(), OcrError> {
+                Err(OcrError::Failed("warm fixture".into()))
+            }
+        }
+        let state = OcrState::with_engine(Arc::new(Fails));
+        assert!(state.warmed_engine().is_err());
+        assert!(!state.is_ready());
+        assert!(state.loaded.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn a_loaded_router_is_not_ready_while_its_deferred_models_warm() {
+        let state = OcrState::with_engine(Arc::new(StubOcr));
+        state.warming.store(true, Ordering::Release);
+        assert!(!state.is_ready());
+        assert_eq!(
+            state.status().state,
+            sakatsu_core::runtime_status::EngineState::Loading
+        );
+        state.warming.store(false, Ordering::Release);
+        assert!(state.is_ready());
+    }
+
+    #[test]
+    fn failed_warmup_cannot_discard_a_newer_engine() {
+        let state = OcrState::with_engine(Arc::new(StubOcr));
+        let old: Arc<dyn Ocr> = Arc::new(StubOcr);
+        state.discard_failed_warm(&old);
+        assert!(state.is_ready());
+        let current = state.engine().unwrap();
+        state.discard_failed_warm(&current);
+        assert!(!state.is_ready());
+        assert!(state.loaded.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn startup_warm_is_visible_before_a_worker_can_start_and_cannot_duplicate() {
+        let state = cold();
+        assert!(
+            !state.begin_warming(false),
+            "conventional settings changes remain lazy"
+        );
+        assert!(state.begin_warming(true));
+        assert_eq!(
+            state.status().state,
+            sakatsu_core::runtime_status::EngineState::Loading
+        );
+        assert!(!state.begin_warming(true), "one worker owns the warmup");
+    }
+
+    #[test]
+    fn startup_does_not_reload_an_explicitly_unloaded_or_ready_engine() {
+        let state = cold();
+        state.held_back.store(true, Ordering::Release);
+        assert!(!state.begin_warming(true));
+        let loaded = OcrState::with_engine(Arc::new(StubOcr));
+        assert!(!loaded.begin_warming(true));
+    }
 
     /// A state over directories that hold nothing, so `engine()` falls through every
     /// `is_present` check to `StubOcr` — the same trick `tests/ipc.rs` uses.
@@ -4327,7 +4430,7 @@ mod ocr_state_tests {
         let (tx, rx) = std::sync::mpsc::channel();
         let probe = Arc::clone(&state);
         std::thread::spawn(move || {
-            let _ = tx.send((probe.is_ready(), probe.chosen_name()));
+            let _ = tx.send((probe.is_ready(), probe.chosen_name(), probe.engine_name()));
         });
 
         let answered = rx.recv_timeout(std::time::Duration::from_secs(5));
@@ -4337,7 +4440,7 @@ mod ocr_state_tests {
 
         assert_eq!(
             answered.expect("readiness must not queue behind the load"),
-            (false, "stub".to_string())
+            (false, "stub".to_string(), "stub".to_string())
         );
     }
 }
@@ -4895,10 +4998,14 @@ pub fn readiness(
     let indexes = dictionary_subdirectories(&dictionaries_dir);
     let (imported, importable) = setup::dictionary_state(&zips, &indexes);
 
-    let loaded = analyzer.now();
+    let route = analyzer.route();
+    let loaded = route.primary.clone();
     let wordnet = particles.0.now();
     let characters = kanji.0.now();
-    let analyzer_check = loaded.analyze("水");
+    // Reading setup status must not defeat an explicit on-demand startup preference.
+    let deferred = matches!(route.readiness, crate::route::Readiness::Deferred);
+    let analyzer_check = (!deferred).then(|| loaded.analyze("水"));
+    let analyzer_ok = analyzer_check.as_ref().is_none_or(Result::is_ok);
     let ocr_dir = crate::model_dir();
     let paddle_dir = crate::paddle_model_dir();
     let mt_dir = crate::translation_model_dir();
@@ -4939,30 +5046,39 @@ pub fn readiness(
             name: "Analyzer",
             catalog: Some("ichiran"),
             // Something always analyses: the built-in one is compiled into the binary.
-            ready: analyzer_check.is_ok(),
+            ready: analyzer_ok,
             detail: match (&analyzer_check, on_ichiran) {
-                (Ok(_), true) => "Ichiran — full conjugation chains, compounds and senses".into(),
-                (Ok(_), false) => {
+                (None, _) => {
+                    "Ichiran starts on first use; built-in analysis remains available".into()
+                }
+                (Some(Ok(_)), true) => {
+                    "Ichiran — full conjugation chains, compounds and senses".into()
+                }
+                (Some(Ok(_)), false) => {
                     "built in (Lindera + UniDic) — senses come from the dictionaries, \
                      and grammar is one form per word rather than a derivation"
                         .into()
                 }
-                (Err(error), _) => error.to_string(),
+                (Some(Err(error)), _) => error.to_string(),
             },
-            fix: match (analyzer_check.is_ok(), on_ichiran) {
-                (true, true) => None,
-                (true, false) => {
-                    // Optional, so this is an upgrade rather than a repair.
-                    Some("Optional: use Set up Ichiran for richer local analysis")
-                }
-                (false, true) => Some(
-                    "Choose Automatic or Built-in under Advanced > Analyzer and restart, \
+            fix: if deferred {
+                None
+            } else {
+                match (analyzer_ok, on_ichiran) {
+                    (true, true) => None,
+                    (true, false) => {
+                        // Optional, so this is an upgrade rather than a repair.
+                        Some("Optional: use Set up Ichiran for richer local analysis")
+                    }
+                    (false, true) => Some(
+                        "Choose Automatic or Built-in under Advanced > Analyzer and restart, \
                      or repair Ichiran with Set up Ichiran",
-                ),
-                (false, false) => Some(
-                    "Restart the app; if the built-in analyzer still fails, open Diagnostics \
+                    ),
+                    (false, false) => Some(
+                        "Restart the app; if the built-in analyzer still fails, open Diagnostics \
                      and report the error",
-                ),
+                    ),
+                }
             },
             // The app analyses either way, so nothing here blocks it.
             required: false,

@@ -27,19 +27,18 @@ texts of the libraries compiled into it.
 - JMdict / JMnedict — EDRDG, CC BY-SA. Ichiran — MIT. Jitendex — CC BY-SA 4.0.
   FuguMT — CC BY-SA 4.0. Yomitan format — open. Hanabira grammar content — CC.
   Imabi / Tae Kim / Pomax — all rights reserved: **link only, never copy**.
-- **Fetched by the app, not by the installer.** The installer contains the executable and
-  its small Windows runtime dependencies; dictionaries, data and models are not bundled.
-  The required first-run task is behind informed consent with its aggregate size and licences;
-  optional resources retain their own explicit actions —
-  which is what "nothing large downloads automatically" means. An install-time fetch would
-  run elevated, before the app had been seen, with no way to recover a half-failure and no
-  way to decline the parts nobody wants. `core/src/setup/` holds the catalog and the
-  downloader; the PowerShell scripts remain the development path and tests prove their URLs plus
-  the separately published offline-essentials manifest agree with the embedded release catalog.
-  Setup state remains in Roaming beside the unchanged store identity; downloaded resources prefer
-  LocalAppData or a learner-chosen fixed drive. See `local documentation`.
+- **Pinned essentials are bundled; datasets and models are never committed.** The single
+  installer includes the catalog's tested dictionaries, kanji resources, WordNet and two OCR
+  engines. Setup installs them in the selected data location after consent, without an
+  install-time network fetch. Their own licences and attribution remain attached to the data.
+  Ichiran and optional features retain separate setup actions.
+- **Dictionary updates are separate from the bundled snapshot.** Publisher checks run at most
+  daily by default. Downloads and installation require approval unless automatic updates are
+  enabled. Imported publishers require source-specific consent. The bundled catalog keeps its
+  exact hashes; newer imports keep their own source, revision and digest. A digest identifies
+  bytes and does not independently authenticate a publisher.
 
-## At a glance: what the app downloads
+## At a glance: included and optional resources
 
 Each is fetched only with consent, from a pinned version checked against its size and digest
 (`core/src/setup/catalog.rs`), and named with its licence before the download starts.

@@ -205,6 +205,10 @@ test("the fade tracks the motion token rather than fixing its own duration", asy
  */
 test("a capture waiting on a cold engine says what it is waiting for", async ({ page }) => {
   await open(page, "&fixture=ocr-loading");
+  await page.evaluate(() => {
+    (window as unknown as { __SAKATSU_QA__: { startColdCapture: () => void } })
+      .__SAKATSU_QA__.startColdCapture();
+  });
   await expect(hint(page)).toHaveText(/Loading PaddleOCR-VL…/);
   await expect(hint(page)).not.toHaveText(/Reading/);
   await expect(hint(page).locator(".spinner")).toBeVisible();

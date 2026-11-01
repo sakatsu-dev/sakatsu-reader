@@ -15,7 +15,7 @@
   import { onMount } from "svelte";
   let { onupdates = () => {} }: { onupdates?: () => void } = $props();
   import { invoke } from "@tauri-apps/api/core";
-  import Seal from "./Seal.svelte";
+  import Logo from "./Logo.svelte";
   import { errorMessage } from "./save-notice.js";
   import type { CatalogEntry, CreditEntry, DictionaryMeta } from "../model";
   // Official marks, bundled unmodified. Provenance and terms: `../assets/brands/README.md`.
@@ -167,7 +167,7 @@
       <div class="spread">
         <div class="card">
           <header class="identity">
-            <div class="tile"><Seal size="2.2rem" /></div>
+            <div class="tile"><Logo size="3rem" /></div>
             <div class="nameplate">
               <p class="title">Sakatsu Reader</p>
               <p class="standfirst">

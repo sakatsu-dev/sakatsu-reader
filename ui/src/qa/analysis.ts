@@ -44,7 +44,7 @@ function settings(params: URLSearchParams): Settings {
   return {
     furigana: true,
     mark_seen_on_focus: false,
-    // The default, so the suite exercises the shipping model; `?cards=hover` selects the other.
+    // Legacy settings compatibility probe; list activation no longer depends on this field.
     focus_before_open: params.get("cards") !== "hover",
     // `?keyboard=tab` is the setting a keyboard reader turns on: focus stays where it lands.
     tab_navigation: params.get("keyboard") === "tab",
@@ -65,12 +65,13 @@ function settings(params: URLSearchParams): Settings {
     hold_ms: 500,
     lock_tap_ms: 400,
     hide_during_capture: false,
-    font_size: 15,
+    font_size: Number(params.get("intro-size")) || 15,
     reader_scale: 1,
     panel_scale: 1,
     read_clipboard: false,
     quiet: true,
     ichiran_server: false,
+    preload_ichiran_on_startup: params.get("preload") !== "off",
     check_updates_on_startup: true,
     // `long-paths` turns both records on, so their paths and the corpus warning are on screen.
     log: params.get("fixture") === "long-paths",
@@ -99,7 +100,7 @@ function settings(params: URLSearchParams): Settings {
     // Paired with `animations` above: on its own, `animations: true` with a zero duration is
     // still no animation, and a spec asking for motion would silently get none. 180 is the
     // store's own default.
-    animation_ms: params.get("motion") === "on" ? 180 : 0,
+    animation_ms: params.get("motion") === "on" ? Number(params.get("intro-speed") ?? 180) : 0,
     panels_ratio: 0.5,
     decor_cloud: 0,
     decor_cloud_on: true,
@@ -569,6 +570,11 @@ function functionWordResult(base: WordView): Found {
 
 function referenceResult(params: URLSearchParams): Found {
   const base = wordFor(token("図書館", "図書館", 0), params).word;
+  if (params.get("fixture") === "personal-name") return {
+    ranked_by: null, japanese: true, needs_gloss_index: false, capped: false,
+    words: [{ ...base, headword: "山田太郎", reading: "やまだたろう", forms: [], chars: [], ranking: null, surface: null,
+      inline: [{ tags: ["person"], glosses: ["Yamada Tarō"], sequence: null }] }],
+  } as unknown as Found;
   // The other entry point to the rebuild. Reference offers it when English search has no index;
   // the panel in Settings offers the same operation, and both must leave the interface refreshed.
   if (params.get("fixture") === "needs-index") {
@@ -958,6 +964,11 @@ export async function installAnalysisQa(params: URLSearchParams) {
   const buildOutcome = params.get("build") ?? "ok";
   let upkeepBuilt = false;
   let upkeepReadable = true;
+  const managerState = params.get("manager") ?? "ready";
+  const manager: import("../bindings").DictionaryManagerSnapshot = {
+    preferences: { check_updates: true, automatic: false }, operation: null,
+    dictionaries: managerState === "empty" ? [] : [{ id: "fixture", kind: "words", title: "Example dictionary [2026-10-03]", revision: "2026.10.03.0", generation: "fixture-generation", source: "https://example.org/index.json", home: "https://example.org/", entries: 42, sha256: null, consented: false, phase: "unchecked", detail: "", available_revision: null }],
+  };
   mockWindows("main");
   let activeText = "";
   let studyCalls = 0;
@@ -967,6 +978,9 @@ export async function installAnalysisQa(params: URLSearchParams) {
   // does not spell, and this is the only place a spec can see the sequence the reader sent.
   const contextCalls: { surfaces: string[]; index: number }[] = [];
   let keptSettings = settings(params);
+  const startupPending = new Set(params.get("startup") === "loading" ? ["analysis", "recognition"] : []);
+  let startupFailed = params.get("startup") === "error";
+  let startupUnavailable = params.get("startup") === "unavailable";
   let osTheme: "light" | "dark" = params.get("os") === "light" ? "light" : "dark";
   const setupMode = params.get("setup") ?? (params.get("qa") === "onboarding" ? "fresh" : "complete");
   let setupPhase = setupMode === "fresh" || setupMode === "complete-after-start"
@@ -1198,6 +1212,7 @@ const optionalCatalog = [
   (window as Window & {
     __SAKATSU_QA__?: {
       commands: string[];
+      finishStartup: (role?: string) => void;
       releaseTranslation: () => boolean;
       releaseRequest: (key: string, how?: "complete" | "fail") => boolean;
       pendingRequests: () => string[];
@@ -1210,11 +1225,14 @@ const optionalCatalog = [
       creatorLinks: unknown[];
       copied: string[];
       emitUpdate: (status: unknown) => void;
+      startColdCapture: () => void;
+      emitDictionaryDrop: (paths: string[], position: { x: number; y: number }) => void;
       pauseOptionalDownload: () => void;
       setOsTheme: (theme: "light" | "dark") => void;
     };
   }).__SAKATSU_QA__ = {
     commands,
+    finishStartup: (role) => { if (role) startupPending.delete(role); else startupPending.clear(); startupFailed = false; startupUnavailable = false; },
     releaseTranslation,
     releaseRequest,
     pendingRequests,
@@ -1227,6 +1245,11 @@ const optionalCatalog = [
     creatorLinks,
     copied,
     emitUpdate: (status) => { void emit("update-status", status); },
+    startColdCapture: () => {
+      void emit("ocr-engine", { name: "vlm", ready: false });
+      void emit("capture-requested", null);
+    },
+    emitDictionaryDrop: (paths, position) => { void emit("tauri://drag-drop", { paths, position }); },
     pauseOptionalDownload: () => {
       optionalBitsPaused = true;
       void emit("fetch-done", { id: "pronunciation", ok: false, detail: "paused" });
@@ -1243,6 +1266,7 @@ const optionalCatalog = [
     async (command, payload) => {
       commands.push(command);
       const args = (payload ?? {}) as Record<string, unknown>;
+      const managerAnswer = command === "dictionary_manager" ? structuredClone(manager) : null;
       const wait = heldCommandWaits.get(command);
       if (wait) {
         heldCommandWaits.delete(command);
@@ -1264,6 +1288,46 @@ const optionalCatalog = [
         // one that matters — English search works and the sequence bucket does not exist, which
         // is what nothing used to report — and `build` decides whether the rebuild succeeds,
         // fails, or is refused because another resource operation owns the dictionaries.
+        case "setup_has_bundle": return params.get("bundle") === "yes";
+        case "dictionary_manager": {
+          if (managerState === "unreadable") throw new Error("The dictionary status could not be read.");
+          return managerAnswer;
+        }
+        case "dictionary_preferences":
+          manager.preferences = args.preferences as typeof manager.preferences;
+          return null;
+        case "dictionary_source_consent":
+          manager.dictionaries[0].consented = Boolean(args.allowed);
+          return null;
+        case "dictionary_open_source": return null;
+        case "dictionary_check":
+          manager.operation = { id: "check-1", target: "all", phase: "checking", detail: "Checking publisher?", bytes: 0 };
+          window.setTimeout(() => {
+            const row = manager.dictionaries[0];
+            if (row) { row.available_revision = "2026.10.18.0"; row.phase = "available"; }
+            manager.operation = { id: "check-1", target: "all", phase: "complete", detail: "Publisher checks finished.", bytes: 0 };
+            void emit("dictionary-manager-changed", null);
+          }, 100);
+          return "check-1";
+        case "dictionary_update":
+          manager.operation = { id: "update-1", target: "fixture", phase: "downloading", detail: "Downloading?", bytes: 1024 };
+          window.setTimeout(() => {
+            const row = manager.dictionaries[0];
+            if (managerState === "update-fails") {
+              manager.operation = { id: "update-1", target: "fixture", phase: "failed", detail: "The publisher archive was invalid. The installed resource was kept.", bytes: 0 };
+            } else {
+              if (row) { row.revision = row.available_revision ?? row.revision; row.available_revision = null; row.phase = "current"; }
+              manager.operation = { id: "update-1", target: "fixture", phase: "complete", detail: "Dictionary ready.", bytes: 0 };
+            }
+            void emit("dictionary-manager-changed", null);
+          }, 100);
+          return "update-1";
+        case "dictionary_preview":
+          return { id: "preview-1", kind: "words", title: "Imported dictionary", revision: "revision-b", source: null, sha256: "a".repeat(64) };
+        case "dictionary_import":
+          manager.operation = { id: "import-1", target: String(args.target ?? "new"), phase: "complete", detail: "Dictionary ready.", bytes: 0 };
+          return "import-1";
+        case "dictionary_cancel": return null;
         case "dictionary_upkeep": {
           if (upkeepState === "unreadable" && upkeepReadable) {
             // Fails once, so "Check again" has something to recover from.
@@ -1345,7 +1409,7 @@ const optionalCatalog = [
           available_bytes: setupSnapshot().storage.available_bytes,
           peak_bytes: setupSnapshot().storage.peak_bytes,
           enough_space: true,
-          network_available: true,
+          network_available: params.get("bundle") !== "yes",
           supported_windows: true,
           supported_architecture: true,
           webview2: true,
@@ -1437,7 +1501,15 @@ const optionalCatalog = [
         case "update_install":
           return { generation: 4, phase: "ready", version: "1.0.1", notes: "", downloaded: 1024, total: 1024, error: "Installation refused by fixture." };
         case "runtime_status":
-          return runtimeStatusFor(params, unloaded);
+          if (startupFailed) throw new Error("Startup status fixture unavailable");
+          {
+            const status = runtimeStatusFor(params, unloaded);
+            for (const engine of status.engines) {
+              if (startupUnavailable && engine.role === "recognition") { engine.state = "not_loaded"; engine.loaded = null; }
+              if (startupPending.has(engine.role)) { engine.state = "loading"; engine.loaded = null; }
+            }
+            return status;
+          }
         case "unload_ocr":
         case "unload_translator": {
           const role = command === "unload_ocr" ? "recognition" : "translation";
@@ -1575,7 +1647,9 @@ const optionalCatalog = [
           await waitForRequest("lookup", chosen?.surface ?? String(args.index ?? 0));
           return wordFor(chosen, params);
         }
-        case "search_words": return referenceResult(params);
+        case "search_words":
+          await waitForRequest("search", String(args.query ?? ""));
+          return referenceResult(params);
         case "search_grammar": return params.get("fixture") === "mixed" ? [qaPattern] : [];
         case "search_terms": return params.get("fixture") === "mixed" ? [glossaryTerms()[0]] : [];
         case "search_particles": return params.get("fixture") === "mixed" && String(args.query ?? "") === "に"
@@ -1605,7 +1679,9 @@ const optionalCatalog = [
           : null;
         case "patterns_for_term": return String(args.id ?? "") === "conjunctive" ? [qaPattern] : [];
         case "gloss_index_ready": return true;
-        case "kanji_diagram": return {
+        case "kanji_diagram":
+          await waitForRequest("diagram", String(args.character ?? ""));
+          return {
           strokes: [
             { path: "M18 18L91 18" },
             { path: "M20 24L20 91" },
@@ -1794,14 +1870,6 @@ const optionalCatalog = [
     };
   }
 
-  // **A cold read, held open.** `read_frame` above never resolves, so the capture stays in
-  // flight; these two events put the hint into the state a real machine is only in for the
-  // seconds PaddleOCR-VL takes to start its service. After the mount, because both are
-  // delivered to listeners `App.svelte` has not registered yet at this point.
-  if (params.get("fixture") === "ocr-loading") {
-    window.setTimeout(() => {
-      void emit("ocr-engine", { name: "vlm", ready: false });
-      void emit("capture-requested", null);
-    }, 0);
-  }
+  // Cold-OCR tests call startColdCapture after the app has registered its listeners.
+  // A zero-delay timer can run before a dynamically loaded app module has mounted.
 }

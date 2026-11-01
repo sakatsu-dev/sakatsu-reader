@@ -151,6 +151,12 @@ impl OcrImage {
 pub trait Ocr: Send + Sync {
     fn recognize(&self, image: &OcrImage) -> Result<String, OcrError>;
 
+    /// Load deferred models without inventing an image or running recognition.
+    /// Most engines load in their constructor; Auto overrides this for its cached models.
+    fn warm(&self) -> Result<(), OcrError> {
+        Ok(())
+    }
+
     /// A short identifier for the engine, e.g. `"manga-ocr"`.
     fn engine(&self) -> &str;
 
@@ -171,6 +177,9 @@ pub trait Ocr: Send + Sync {
 /// to be released before inference runs. Without this, [`preprocess::Preprocess`] could
 /// not be put in front of it, because its inner type has to implement the trait too.
 impl<T: Ocr + ?Sized> Ocr for std::sync::Arc<T> {
+    fn warm(&self) -> Result<(), OcrError> {
+        (**self).warm()
+    }
     fn recognize(&self, image: &OcrImage) -> Result<String, OcrError> {
         (**self).recognize(image)
     }

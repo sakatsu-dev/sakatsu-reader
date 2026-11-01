@@ -50,7 +50,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
-use std::sync::{Mutex, TryLockError};
+use std::sync::{Mutex, MutexGuard, TryLockError};
 use std::time::{Duration, Instant};
 
 /// Whether to route analyses through a live process. Off unless asked for.
@@ -261,6 +261,92 @@ pub fn shutdown() {
     }
 }
 
+/// A nonblocking status read: `None` means a request or preload owns the session lock.
+pub fn session_ready() -> Option<bool> {
+    match SESSION.try_lock() {
+        Ok(session) => Some(session.is_some()),
+        Err(TryLockError::WouldBlock) => None,
+        Err(TryLockError::Poisoned(_)) => Some(false),
+    }
+}
+
+/// Holds the session reservation until its matching analyzer route is published.
+/// An unpublished candidate is private: dropping it kills only that new process.
+pub struct PreparedSession {
+    slot: MutexGuard<'static, Option<Session>>,
+    candidate: Option<Session>,
+    answer: Option<String>,
+}
+
+impl PreparedSession {
+    pub(super) fn answer(&self) -> Option<&str> {
+        self.answer.as_deref()
+    }
+
+    pub(super) fn commit(mut self) {
+        if persistent() {
+            if let Some(session) = self.candidate.take() {
+                *self.slot = Some(session);
+            }
+        }
+    }
+}
+
+impl Drop for PreparedSession {
+    fn drop(&mut self) {
+        // Reap the private child before releasing the shared reservation.
+        self.candidate.take();
+    }
+}
+
+/// Prepare the actual persistent process, with the same frame protocol as foreground reads.
+/// Cancellation never takes a session away from a foreground owner.
+pub(super) fn prepare(
+    program: &OsStr,
+    prefix_args: &[OsString],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Option<PreparedSession>, String> {
+    let slot = loop {
+        if cancelled.load(Ordering::Acquire) || !persistent() {
+            return Ok(None);
+        }
+        if Instant::now() >= deadline {
+            return Err("the session preload exhausted its budget".into());
+        }
+        match SESSION.try_lock() {
+            Ok(slot) => break slot,
+            Err(TryLockError::Poisoned(_)) => return Err("the session lock was poisoned".into()),
+            Err(TryLockError::WouldBlock) => std::thread::sleep(Duration::from_millis(10)),
+        }
+    };
+    let mut prepared = PreparedSession {
+        slot,
+        candidate: None,
+        answer: None,
+    };
+    if prepared.slot.is_none() {
+        if !install_driver_cancellable(program, deadline, cancelled)? {
+            return Ok(None);
+        }
+        if cancelled.load(Ordering::Acquire) || !persistent() {
+            return Ok(None);
+        }
+        let mut candidate = Session::spawn(program, prefix_args)?;
+        let answer = match candidate.request("\u{6c34}", deadline, Some(cancelled)) {
+            Ok(answer) => answer,
+            Err(_) if cancelled.load(Ordering::Acquire) || !persistent() => return Ok(None),
+            Err(Failure::Failed(error) | Failure::TimedOut(error)) => return Err(error),
+        };
+        prepared.candidate = Some(candidate);
+        prepared.answer = Some(answer);
+    }
+    if cancelled.load(Ordering::Acquire) || !persistent() {
+        return Ok(None);
+    }
+    Ok(Some(prepared))
+}
+
 /// What the session route did with one passage.
 pub(super) enum Answer {
     /// The live session answered.
@@ -339,7 +425,7 @@ pub(super) fn analyze(
         took(Route::Poisoned);
         return Answer::Declined;
     };
-    match session.request(text, deadline) {
+    match session.request(text, deadline, None) {
         Ok(json) => {
             took(Route::Session);
             Answer::Session(json)
@@ -415,7 +501,10 @@ struct Session {
 impl Session {
     fn start(program: &OsStr, prefix_args: &[OsString]) -> Result<Self, String> {
         install_driver(program)?;
+        Self::spawn(program, prefix_args)
+    }
 
+    fn spawn(program: &OsStr, prefix_args: &[OsString]) -> Result<Self, String> {
         // `-f` is what the one-shot path asks for and is meaningless here: the driver calls
         // `romanize*` itself. Everything else in the prefix is how the binary is reached at all
         // (`-e ichiran-cli` under WSL) and has to be kept.
@@ -474,7 +563,12 @@ impl Session {
     /// the pipe fills, and a blocked write cannot be abandoned from the thread doing it. Waiting on
     /// the writer with the remaining budget bounds it; the caller drops the session on a timeout,
     /// which kills the child and frees the writer.
-    fn request(&mut self, text: &str, deadline: Instant) -> Result<String, Failure> {
+    fn request(
+        &mut self,
+        text: &str,
+        deadline: Instant,
+        cancelled: Option<&AtomicBool>,
+    ) -> Result<String, Failure> {
         // Characters, matching `read-sequence` on the other end. See the module note.
         let frame = format!("{}\n{}\n", text.chars().count(), text);
         let mut stdin = self
@@ -489,7 +583,7 @@ impl Session {
                 .map(|()| stdin);
             let _ = tx.send(outcome);
         });
-        match written.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+        match receive(&written, deadline, cancelled) {
             Ok(Ok(stdin)) => self.stdin = Some(stdin),
             Ok(Err(error)) => {
                 return Err(Failure::Failed(format!(
@@ -503,10 +597,7 @@ impl Session {
             }
         }
 
-        let line = match self
-            .lines
-            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-        {
+        let line = match receive(&self.lines, deadline, cancelled) {
             Ok(Ok(line)) => line,
             Ok(Err(error)) => {
                 return Err(Failure::Failed(format!(
@@ -550,6 +641,88 @@ impl Session {
 
         Ok(line)
     }
+}
+
+/// Foreground reads retain one deadline wait; speculative reads poll their cancellation token.
+fn receive<T>(
+    receiver: &Receiver<T>,
+    deadline: Instant,
+    cancelled: Option<&AtomicBool>,
+) -> Result<T, RecvTimeoutError> {
+    loop {
+        if cancelled.is_some_and(|flag| flag.load(Ordering::Acquire) || !persistent()) {
+            return Err(RecvTimeoutError::Timeout);
+        }
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        let interval = if cancelled.is_some() {
+            remaining.min(Duration::from_millis(10))
+        } else {
+            remaining
+        };
+        match receiver.recv_timeout(interval) {
+            Err(RecvTimeoutError::Timeout) if Instant::now() < deadline && cancelled.is_some() => {
+                continue
+            }
+            result => return result,
+        }
+    }
+}
+
+/// Unlike foreground startup's helper, preload must reap a cancelled driver installation
+/// before releasing its lifecycle reservation.
+fn install_driver_cancellable(
+    program: &OsStr,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<bool, String> {
+    if cancelled.load(Ordering::Acquire) || !persistent() {
+        return Ok(false);
+    }
+    if program != "wsl" {
+        install_driver(program)?;
+        return Ok(true);
+    }
+    let mut command = Command::new(program);
+    command
+        .args(["-e", "bash", "-c", &format!("cat > {DRIVER_PATH}")])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    super::hide_console(&mut command);
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("could not install the driver: {error}"))?;
+    let result = (|| {
+        let mut stdin = child.stdin.take().ok_or("driver stdin was not piped")?;
+        let (written, result) = mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = written.send(stdin.write_all(DRIVER.as_bytes()));
+        });
+        match receive(&result, deadline, Some(cancelled)) {
+            Ok(Ok(())) => {}
+            _ if cancelled.load(Ordering::Acquire) || !persistent() => return Ok(false),
+            Ok(Err(error)) => return Err(error.to_string()),
+            Err(_) => return Err("driver write exhausted the preload budget".into()),
+        }
+        loop {
+            if cancelled.load(Ordering::Acquire) || !persistent() {
+                return Ok(false);
+            }
+            match child.try_wait().map_err(|error| error.to_string())? {
+                Some(status) if status.success() => return Ok(true),
+                Some(status) => return Err(format!("driver install exited with {status}")),
+                None if Instant::now() >= deadline => {
+                    return Err("driver install exhausted the preload budget".into())
+                }
+                None => std::thread::sleep(Duration::from_millis(10)),
+            }
+        }
+    })();
+    if !matches!(result, Ok(true)) {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+    result
 }
 
 /// **Dropping a session ends it**: stdin closes so the loop ends, and the process is killed

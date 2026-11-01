@@ -173,6 +173,14 @@ fn install_cancels_the_real_probe_child_but_still_waits_for_foreground_analysis(
     use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
     use tauri::Manager;
     let _serial = serial();
+    struct Persistence(bool);
+    impl Drop for Persistence {
+        fn drop(&mut self) {
+            sakatsu_core::analyzer::ichiran::server::set_persistent(self.0);
+        }
+    }
+    let _persistence = Persistence(sakatsu_core::analyzer::ichiran::server::persistent());
+    sakatsu_core::analyzer::ichiran::server::set_persistent(true);
     let dir = std::env::temp_dir().join(format!(
         "sakatsu-probe-cancel-{}-{}",
         std::process::id(),
@@ -273,6 +281,11 @@ fn install_cancels_the_real_probe_child_but_still_waits_for_foreground_analysis(
         "the actual sidecar fixture did not start: {:?}",
         app.state::<AnalyzerState>().route().readiness
     );
+    assert_eq!(
+        sakatsu_core::analyzer::ichiran::server::session_ready(),
+        None,
+        "this control must exercise the persistent preload reservation"
+    );
     let foreground = gates().enter(Gate::Analysis).unwrap();
     let installed = Arc::new(AtomicBool::new(false));
     let called = installed.clone();
@@ -295,6 +308,10 @@ fn install_cancels_the_real_probe_child_but_still_waits_for_foreground_analysis(
     assert!(
         still_pending,
         "cancellation was misreported as an unavailable analyzer"
+    );
+    assert_eq!(
+        sakatsu_core::analyzer::ichiran::server::session_ready(),
+        Some(false)
     );
     assert_eq!(
         gates().active(Gate::Analysis),
@@ -346,6 +363,8 @@ fn install_cancels_the_real_probe_child_but_still_waits_for_foreground_analysis(
     assert_eq!(ready.generation, 1);
     assert_eq!(ready.primary.engine(), "ichiran");
     assert!(matches!(ready.readiness, Readiness::Ready));
+    // The next check must execute the changed stub, not reuse the session just prepared.
+    sakatsu_core::analyzer::ichiran::server::shutdown();
     std::fs::write(&script, "[Console]::Write('not JSON')").unwrap();
     sakatsu_desktop_lib::probe_and_publish(app.handle());
     let failed = app.state::<AnalyzerState>().route();

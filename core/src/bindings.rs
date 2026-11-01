@@ -71,6 +71,30 @@ use ts_rs::{Config, TS};
 /// declaration with no declaration of its own for the frontend to import.
 fn declarations(cfg: &Config) -> Vec<(&'static str, String)> {
     vec![
+        (
+            "ResourceKind",
+            crate::dict::managed::ResourceKind::decl(cfg),
+        ),
+        (
+            "ImportPreview",
+            crate::dict::managed::ImportPreview::decl(cfg),
+        ),
+        (
+            "DictionaryPreferences",
+            crate::dict::managed::DictionaryPreferences::decl(cfg),
+        ),
+        (
+            "ManagedDictionary",
+            crate::dict::managed::ManagedDictionary::decl(cfg),
+        ),
+        (
+            "DictionaryOperation",
+            crate::dict::managed::DictionaryOperation::decl(cfg),
+        ),
+        (
+            "DictionaryManagerSnapshot",
+            crate::dict::managed::DictionaryManagerSnapshot::decl(cfg),
+        ),
         // Leaves first, so the file reads top-down.
         ("UpdatePhase", crate::update::UpdatePhase::decl(cfg)),
         ("UpdateStatus", crate::update::UpdateStatus::decl(cfg)),

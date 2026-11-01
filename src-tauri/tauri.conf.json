@@ -7,7 +7,7 @@
     "frontendDist": "../ui/dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeBuildCommand": "npm run build && python scripts/prepare-essentials.py --verify"
   },
   "app": {
     "windows": [
@@ -43,6 +43,7 @@
     "licenseFile": "../LICENSE",
     "copyright": "Copyright (c) 2026 the Sakatsu contributors",
     "resources": {
+      "resources/essentials/": "essentials/",
       "../scripts/fetch-dictionaries.ps1": "scripts/fetch-dictionaries.ps1",
       "../scripts/fetch-frequency-bccwj.ps1": "scripts/fetch-frequency-bccwj.ps1",
       "../scripts/fetch-frequency-jpdb.ps1": "scripts/fetch-frequency-jpdb.ps1",

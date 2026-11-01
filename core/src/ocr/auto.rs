@@ -204,6 +204,18 @@ impl AutoOcr {
 }
 
 impl Ocr for AutoOcr {
+    fn warm(&self) -> Result<(), OcrError> {
+        let paddle = self.paddle();
+        let manga = self.manga();
+        // Startup must retain the same idle eviction policy as a burst of captures.
+        Models::defer_trim(&self.models);
+        match (paddle, manga) {
+            (Err(first), Err(second)) => Err(combine_errors(Some(first), second)),
+            (Err(error), _) | (_, Err(error)) => Err(error),
+            (Ok(None), Ok(None)) => Err(no_models()),
+            _ => Ok(()),
+        }
+    }
     fn recognize(&self, image: &OcrImage) -> Result<String, OcrError> {
         self.recognize_explained(image).map(|(text, _)| text)
     }
@@ -221,6 +233,36 @@ impl Ocr for AutoOcr {
             crate::ocr::paddle::ENGINE
         };
         Ok((text, produced_by.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod startup_warm_tests {
+    use super::*;
+
+    #[test]
+    fn absent_models_do_not_count_as_a_successful_warmup() {
+        let absent =
+            std::env::temp_dir().join(format!("sakatsu-no-ocr-models-{}", std::process::id()));
+        let auto = AutoOcr::new(absent.join("manga-ocr"), absent.join("pp-ocrv6"));
+        assert!(auto.warm().is_err());
+    }
+
+    #[test]
+    #[ignore = "needs both installed OCR engines in SAKATSU_EVAL_MODEL_DIR"]
+    fn startup_loads_both_real_models_without_running_recognition() {
+        let root = PathBuf::from(
+            std::env::var_os("SAKATSU_EVAL_MODEL_DIR").expect("set the isolated model root"),
+        );
+        let manga = root.join("manga-ocr");
+        let paddle = root.join("ppocrv6");
+        assert!(MangaOcr::is_present(&manga) && PaddleOcr::is_present(&paddle));
+        let auto = AutoOcr::new(manga, paddle);
+        assert!(auto.models.manga.lock().unwrap().is_none());
+        assert!(auto.models.paddle.lock().unwrap().is_none());
+        auto.warm().expect("both actual models initialize");
+        assert!(auto.models.manga.lock().unwrap().is_some());
+        assert!(auto.models.paddle.lock().unwrap().is_some());
     }
 }
 

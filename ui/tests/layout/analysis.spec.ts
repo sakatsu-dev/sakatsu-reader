@@ -508,12 +508,10 @@ test("Reference kanji enrichment remains contained and uses the current search t
   await expect(result.locator("> .disclose")).toHaveAttribute("aria-expanded", "true");
 
   const tabCount = await page.locator(".tabs .tab").count();
-  // **Every kanji in the word, already open.** They used to be chips that opened one at a time,
-  // so reading 図書館 meant three decisions before it said anything about any of them. The panel
-  // itself is what is counted, not a box around it: Reference places these in their own column
-  // beside the word, so there is no wrapper.
+  // Word lookup stays primary; explicitly request the character before testing its detail.
   const panels = page.getByRole("region", { name: "図書館 detail" }).locator(".character");
-  await expect(panels).toHaveCount(3);
+  await page.getByRole("button", { name: "Study 図", exact: true }).click();
+  await expect(panels).toHaveCount(1);
   // Located by its own diagram rather than by position, so the assertions below cannot quietly
   // move to a different character if the order ever changes.
   const detail = panels.filter({
@@ -546,10 +544,8 @@ test("Reference kanji enrichment remains contained and uses the current search t
   await detail.getByRole("button", { name: /Look up 囲/ }).click();
   await expect(page.locator(".tabs .tab")).toHaveCount(tabCount);
 
-  // 書 needed a press of its own before; it is simply there now, which is what the count above
-  // already says. What is worth re-checking is that walking to a related kanji left the rest of
-  // the stack alone rather than collapsing it.
-  await expect(panels).toHaveCount(3);
+  // A new search discards the previous character selection.
+  await expect(panels).toHaveCount(0);
   await assertNoHorizontalOverflow(page);
   await assertPageDoesNotScrollSideways(page);
 });

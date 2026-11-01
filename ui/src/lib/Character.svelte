@@ -9,8 +9,11 @@
   let {
     character,
     onlookup,
+    editorial = false,
   }: {
     character: KanjiView;
+    /** Left-aligned study details in Reference; other surfaces keep their presentation. */
+    editorial?: boolean;
     /** The Reference page's ordinary current-tab search. */
     onlookup: (text: string) => void;
   } = $props();
@@ -104,7 +107,7 @@
   >
 {/snippet}
 
-<div class="character">
+<div class="character" class:editorial>
   <div class="visual">
     {#if diagram}
       {#key playVersion}
@@ -453,4 +456,12 @@
        So the stack is stated rather than implied: both cells in the one column, in order. */
     .facts { grid-column: 1; grid-row: 2; }
   }
+  .editorial { text-align: left; grid-template-columns: minmax(4rem, 5.5rem) minmax(0, 1fr); }
+  .editorial .facts { grid-template-columns: auto minmax(0, 1fr); justify-content: start; }
+  .editorial .facts dt { text-align: left; font-family: inherit; font-size: 0.8rem; letter-spacing: normal; text-transform: none; }
+  .editorial .facts dd, .editorial .component-list, .editorial .related-row { justify-content: flex-start; }
+  .editorial .compounds button { justify-content: flex-start; text-align: left; margin-right: 0; padding-inline: 0; }
+  .editorial .compound-gloss { flex-basis: 100%; white-space: normal; }
+  .editorial .section { text-transform: none; letter-spacing: normal; }
+  @container (max-width: 30rem) { .editorial { grid-template-columns: 1fr; } }
 </style>

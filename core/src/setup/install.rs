@@ -66,7 +66,11 @@ pub fn publish_kanji_details(
     destination: &std::path::Path,
 ) -> Result<(), String> {
     const OUTPUTS: [&str; 4] = ["kanjidic.tsv", "krad.tsv", "krad-reverse.tsv", "kanjivg"];
-    crate::setup::publication::publish_set(stage, destination, &OUTPUTS)?;
+    let mut outputs = OUTPUTS.to_vec();
+    if stage.join("kanjidic-source.json").is_file() {
+        outputs.push("kanjidic-source.json");
+    }
+    crate::setup::publication::publish_set(stage, destination, &outputs)?;
     let _ = std::fs::remove_dir(stage);
     Ok(())
 }
@@ -138,6 +142,28 @@ pub fn prepare_dictionaries(
     work: &std::path::Path,
     cancel: &Arc<AtomicBool>,
 ) -> Result<(Vec<crate::dict::PreparedGeneration>, String), String> {
+    prepare_dictionary_set(hooks, component, dir, work, cancel, false)
+}
+
+/// Bundled snapshots fill missing containers and never replace a working user dictionary.
+pub fn prepare_missing_dictionaries(
+    hooks: &mut dyn InstallHooks,
+    component: &'static crate::setup::Component,
+    dir: &std::path::Path,
+    work: &std::path::Path,
+    cancel: &Arc<AtomicBool>,
+) -> Result<(Vec<crate::dict::PreparedGeneration>, String), String> {
+    prepare_dictionary_set(hooks, component, dir, work, cancel, true)
+}
+
+fn prepare_dictionary_set(
+    hooks: &mut dyn InstallHooks,
+    component: &'static crate::setup::Component,
+    dir: &std::path::Path,
+    work: &std::path::Path,
+    cancel: &Arc<AtomicBool>,
+    preserve_existing: bool,
+) -> Result<(Vec<crate::dict::PreparedGeneration>, String), String> {
     let mut prepared = Vec::new();
     let mut described = Vec::new();
     for file in component
@@ -149,6 +175,10 @@ pub fn prepare_dictionaries(
             return Err("paused".into());
         }
         let name = dictionary_name(&file);
+        if preserve_existing && crate::dict::Dictionary::open(&dir.join(&name)).is_ok() {
+            described.push(format!("{name} (kept installed version)"));
+            continue;
+        }
 
         hooks.detail("dictionaries", &format!("importing {file}…"));
         // `prepare` builds the English gloss and kanji buckets too, so there is no second publish
@@ -159,7 +189,7 @@ pub fn prepare_dictionaries(
         prepared.push(generation);
     }
 
-    if prepared.is_empty() {
+    if prepared.is_empty() && !preserve_existing {
         return Err("nothing to import".into());
     }
     Ok((prepared, described.join(", ")))
@@ -216,6 +246,17 @@ pub fn install_staged(
                     &stage.join("kanjidic.tsv"),
                 )
                 .map_err(|error| error.to_string())?;
+                let source_archive = work.join("kanjidic2.xml.gz");
+                let source = crate::dict::managed::KanjiSource {
+                    revision: crate::dict::managed::inspect_kanji(&source_archive)?,
+                    sha256: crate::dict::managed::sha256(&source_archive)?,
+                    source: component.artifacts[0].url.into(),
+                };
+                std::fs::write(
+                    stage.join("kanjidic-source.json"),
+                    serde_json::to_vec(&source).map_err(|e| e.to_string())?,
+                )
+                .map_err(|e| e.to_string())?;
                 hooks.detail(component.id, "indexing visual components…");
                 let components = crate::setup::krad_tables(
                     &work.join("kradfile.gz"),

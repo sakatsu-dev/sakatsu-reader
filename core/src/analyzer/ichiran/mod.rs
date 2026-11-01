@@ -166,9 +166,15 @@ impl IchiranAnalyzer {
     /// Check readiness in a private one-shot process. Cancellation never touches the shared
     /// sidecar, which may be serving a passage. `false` means cancelled, not unavailable.
     pub fn check_available(&self, cancelled: &AtomicBool) -> Result<bool, AnalyzeError> {
-        let Some(stdout) =
-            self.one_shot_cancellable("\u{6c34}", Instant::now() + self.budget, Some(cancelled))?
-        else {
+        self.check_available_by(Instant::now() + self.budget, cancelled)
+    }
+
+    fn check_available_by(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, AnalyzeError> {
+        let Some(stdout) = self.one_shot_cancellable("\u{6c34}", deadline, Some(cancelled))? else {
             return Ok(false);
         };
         let segments = raw::parse(&stdout)
@@ -180,6 +186,39 @@ impl IchiranAnalyzer {
             &Assistance::new(AssistanceMode::Legacy),
         )?;
         Ok(!cancelled.load(Ordering::Acquire))
+    }
+
+    /// Warm the process used by passages, keeping it private until its route is published.
+    /// A sidecar without session support retains the normal one-shot readiness path.
+    pub fn prepare_for_startup(
+        &self,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<PreloadedIchiran>, AnalyzeError> {
+        let deadline = Instant::now() + self.budget;
+        if server::persistent() {
+            match server::prepare(&self.program, &self.prefix_args, deadline, cancelled) {
+                Ok(Some(session)) => {
+                    if let Some(answer) = session.answer() {
+                        let segments = raw::parse(answer).map_err(|error| {
+                            AnalyzeError::BadOutput(format!("unexpected JSON: {error}"))
+                        })?;
+                        to_analysis_in(
+                            "\u{6c34}",
+                            &segments,
+                            TiePolicy::SHIPPED,
+                            &Assistance::new(AssistanceMode::Legacy),
+                        )?;
+                    }
+                    return Ok(Some(PreloadedIchiran {
+                        session: Some(session),
+                    }));
+                }
+                Ok(None) => return Ok(None),
+                Err(error) => crate::log_warn!("ichiran", "session preload declined: {error}"),
+            }
+        }
+        self.check_available_by(deadline, cancelled)
+            .map(|ready| ready.then_some(PreloadedIchiran { session: None }))
     }
 
     fn one_shot_cancellable(
@@ -264,6 +303,19 @@ impl IchiranAnalyzer {
             budget: self.budget,
         };
         limited.one_shot(text, Instant::now() + self.budget)
+    }
+}
+
+/// Startup owns this preparation until the matching route wins publication.
+pub struct PreloadedIchiran {
+    session: Option<server::PreparedSession>,
+}
+
+impl PreloadedIchiran {
+    pub fn commit(self) {
+        if let Some(session) = self.session {
+            session.commit();
+        }
     }
 }
 

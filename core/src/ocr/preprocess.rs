@@ -90,6 +90,9 @@ impl<E: Ocr> Preprocess<E> {
 }
 
 impl<E: Ocr> Ocr for Preprocess<E> {
+    fn warm(&self) -> Result<(), OcrError> {
+        self.inner.warm()
+    }
     fn recognize(&self, image: &OcrImage) -> Result<String, OcrError> {
         if !self.options.any() {
             return self.inner.recognize(image);

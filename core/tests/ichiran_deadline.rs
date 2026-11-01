@@ -14,6 +14,7 @@
 //! The persistent session is process-wide state, so these run one at a time.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -27,6 +28,126 @@ const BUDGET: Duration = Duration::from_millis(1500);
 /// Scheduling slack on a loaded machine. Far less than a second budget, which is what a stacked
 /// wait would add.
 const SLACK: Duration = Duration::from_millis(1200);
+
+#[test]
+fn one_shot_readiness_alone_does_not_preload_the_reading_session() {
+    let _fresh = fresh(true);
+    let mark = marker("preload-old-readiness");
+    let analyzer = fake("answer");
+    assert!(analyzer.check_available(&AtomicBool::new(false)).unwrap());
+    assert_eq!(server::session_ready(), Some(false));
+    analyzer
+        .analyze("\u{6c34}\u{3092}\u{98f2}\u{3080}")
+        .unwrap();
+    assert_eq!(starts(&mark), ["answer one-shot", "answer session"]);
+}
+
+#[test]
+fn startup_preload_reuses_the_process_for_the_first_passage() {
+    let _fresh = fresh(true);
+    let mark = marker("preload-reuse");
+    let analyzer = fake("answer");
+    let cancelled = AtomicBool::new(false);
+    let prepared = analyzer
+        .prepare_for_startup(&cancelled)
+        .unwrap()
+        .expect("prepared");
+    assert_eq!(
+        server::session_ready(),
+        None,
+        "publication still owns the reservation"
+    );
+    prepared.commit();
+    assert_eq!(server::session_ready(), Some(true));
+    analyzer.analyze("水を飲む").unwrap();
+    assert_eq!(starts(&mark), ["answer session"]);
+    assert!(server::last_route().is_session());
+}
+
+#[test]
+fn an_unpublished_preload_is_discarded_instead_of_becoming_the_live_session() {
+    let _fresh = fresh(true);
+    let mark = marker("preload-discard");
+    let analyzer = fake("answer");
+    drop(
+        analyzer
+            .prepare_for_startup(&AtomicBool::new(false))
+            .unwrap(),
+    );
+    assert_eq!(server::session_ready(), Some(false));
+    analyzer.analyze("水を飲む").unwrap();
+    assert_eq!(starts(&mark), ["answer session", "answer session"]);
+}
+
+#[test]
+fn a_cancelled_preload_releases_its_child_and_reservation_promptly() {
+    let _fresh = fresh(true);
+    let mark = marker("preload-cancel");
+    let cancelled = AtomicBool::new(false);
+    let started = Instant::now();
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            while !mark.exists() && started.elapsed() < BUDGET {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            assert!(mark.exists(), "the preload was actually started");
+            cancelled.store(true, Ordering::Release);
+        });
+        assert!(fake("silent")
+            .prepare_for_startup(&cancelled)
+            .unwrap()
+            .is_none());
+    });
+    assert!(
+        started.elapsed() < BUDGET,
+        "cancellation waited for the full budget"
+    );
+    assert!(
+        server::persistent(),
+        "cancellation must not disable persistence"
+    );
+    assert_eq!(server::session_ready(), Some(false));
+    fake("answer").analyze("水を飲む").unwrap();
+    assert_eq!(starts(&mark), ["silent session", "answer session"]);
+}
+
+#[test]
+fn an_already_cancelled_preload_starts_nothing() {
+    let _fresh = fresh(true);
+    let mark = marker("preload-never");
+    assert!(fake("answer")
+        .prepare_for_startup(&AtomicBool::new(true))
+        .unwrap()
+        .is_none());
+    assert!(starts(&mark).is_empty());
+}
+
+#[test]
+fn preloading_respects_the_separate_persistence_setting() {
+    let _fresh = fresh(false);
+    let mark = marker("preload-one-shot");
+    fake("answer")
+        .prepare_for_startup(&AtomicBool::new(false))
+        .unwrap()
+        .expect("checked")
+        .commit();
+    assert_eq!(server::session_ready(), Some(false));
+    assert_eq!(starts(&mark), ["answer one-shot"]);
+}
+
+#[test]
+fn a_preload_does_not_restart_an_existing_session() {
+    let _fresh = fresh(true);
+    let mark = marker("preload-existing");
+    let analyzer = fake("answer");
+    analyzer.analyze("水を飲む").unwrap();
+    analyzer
+        .prepare_for_startup(&AtomicBool::new(false))
+        .unwrap()
+        .expect("already live")
+        .commit();
+    assert_eq!(starts(&mark), ["answer session"]);
+}
 
 fn fake(mode: &str) -> IchiranAnalyzer {
     IchiranAnalyzer::with_command(

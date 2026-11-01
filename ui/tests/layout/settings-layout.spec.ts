@@ -5,6 +5,56 @@ import { assertContained } from "./contained";
 
 const root = (page: Page) => page.locator("html");
 
+test("Ichiran startup preload is saved independently of persistence", async ({ page }) => {
+  await page.goto("/?qa=analysis");
+  await openSettings(page);
+  const preload = page.getByRole("checkbox", { name: "Preload Ichiran at startup", exact: true });
+  const persistence = page.getByRole("checkbox", {
+    name: "Keep Ichiran running between passages",
+    exact: true,
+  });
+  await expect(preload).toBeChecked();
+  await expect(persistence).not.toBeChecked();
+  await expect(
+    page.getByText("Start it in the background for a quicker first passage. Applies next launch.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await preload.uncheck();
+  await persistence.check();
+  await page.locator("button.exit").click();
+  // Saving is debounced. Observe the persisted result rather than racing its timer.
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const ipc = (
+          window as unknown as {
+            __TAURI_INTERNALS__: { invoke: (command: string) => Promise<Record<string, unknown>> };
+          }
+        ).__TAURI_INTERNALS__;
+        const saved = await ipc.invoke("settings");
+        return { preload: saved.preload_ichiran_on_startup, persistence: saved.ichiran_server };
+      }),
+    )
+    .toEqual({ preload: false, persistence: true });
+  await openSettings(page);
+  await expect(preload).not.toBeChecked();
+  await expect(persistence).toBeChecked();
+  await assertContained(page);
+});
+
+test("Ichiran preload can be disabled in saved settings and found through search", async ({
+  page,
+}) => {
+  await page.goto("/?qa=analysis&preload=off");
+  await openSettings(page);
+  await page.getByPlaceholder("Search settings").fill("preload");
+  await page.getByRole("button", { name: /Preload Ichiran at startup/ }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Preload Ichiran at startup", exact: true }),
+  ).not.toBeChecked();
+});
+
 /**
  * A section id this build does not have — what a settings file written by a newer version hands
  * an older one. The page must say so and stay usable, not render a nav with nothing beside it,

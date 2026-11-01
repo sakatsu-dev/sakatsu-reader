@@ -10,6 +10,8 @@ async function openReference(page: Page, fixture = "parts", query = "eat", extra
   await search.press("Enter");
   const collection = page.getByRole("list", { name: "Reference results" });
   await expect(collection).toBeVisible();
+  const filters = page.locator(".word-filter-bar details");
+  if (await filters.count()) await filters.evaluate((element) => (element as HTMLDetailsElement).open = true);
   return collection;
 }
 
@@ -50,20 +52,10 @@ async function clickCard(item: Locator) {
   await preview.click({ position: { x: 4, y: box!.height - 3 } });
 }
 
-/**
- * Pick a card under the focus model, unless it is already the picked one, so the next click is
- * the one that opens or closes it. **Read the mode, don't guess it**: under `hover` one click does
- * both, and a picking click there would open the card instead.
- */
-async function pick(item: Locator) {
-  const mode = await item.locator("xpath=ancestor::*[@data-cards][1]").getAttribute("data-cards");
-  if (mode === "focus" && (await item.getAttribute("data-focused")) === null) await clickCard(item);
-}
 
 /** Open or close a card through its control's list item, the way a reader does. */
 async function toggle(tab: Locator) {
   const item = tab.locator("xpath=..");
-  await pick(item);
   await clickCard(item);
 }
 
@@ -85,7 +77,7 @@ test("facets and all-sense POS filters preserve one stable collection", async ({
   await page.getByRole("button", { name: /^Noun 2$/ }).click();
   await expect(previews(collection)).toHaveCount(2);
   await expect(previews(collection).first()).toContainText("図書館");
-  await page.getByRole("button", { name: "Show all words" }).click();
+  await page.getByRole("button", { name: "Clear word filters" }).click();
   await expect(previews(collection)).toHaveCount(5);
 
   await assertContained(page);
@@ -132,7 +124,7 @@ test("the result collection uses roving focus and Escape returns focus to its op
   const opened = collection.locator(`.disclose[data-result="${key}"]`);
   await items.nth(1).press("Enter");
   await expect(opened).toHaveAttribute("aria-expanded", "true");
-  await expect(items.first()).toHaveAttribute("data-result", key!);
+  await expect(items.nth(1)).toHaveAttribute("data-result", key!);
   await page.keyboard.press("Escape");
   await expect(opened).toHaveAttribute("aria-expanded", "false");
   await expect(opened).toBeFocused();
@@ -160,32 +152,14 @@ test("tabs restore their expansion and collection scroll for the session", async
   await expect.poll(() => collection.evaluate((element) => element.scrollTop)).toBeCloseTo(savedScroll, 0);
 });
 
-test("Cards are the wide default, Rows are forced when constrained, and the preference is reversible", async ({ page }) => {
+test("Reference is one continuous column at every width", async ({ page }) => {
   const collection = await openReference(page);
-  const items = previews(collection);
-  const first = await items.nth(0).boundingBox();
-  const second = await items.nth(1).boundingBox();
-  expect(first).not.toBeNull();
-  expect(second).not.toBeNull();
-
-  if (await isWide(page)) {
-    expect(Math.abs(first!.x - second!.x)).toBeGreaterThan(8);
-    const rows = page.getByRole("button", { name: /Show as rows/ });
-    await expect(rows).toBeVisible();
-    await rows.click();
-    const rowFirst = await items.nth(0).boundingBox();
-    const rowSecond = await items.nth(1).boundingBox();
-    expect(Math.abs(rowFirst!.x - rowSecond!.x)).toBeLessThan(2);
-    await page.getByRole("button", { name: /Show as cards/ }).click();
-    const restoredSecond = await items.nth(1).boundingBox();
-    expect(Math.abs(first!.x - restoredSecond!.x)).toBeGreaterThan(8);
-  } else {
-    expect(Math.abs(first!.x - second!.x)).toBeLessThan(2);
-    await expect(page.getByRole("button", { name: /Show as rows|Show as cards/ })).toBeHidden();
-  }
-
+  await expect(page.getByRole("button", { name: /Show as rows|Show as cards/ })).toHaveCount(0);
+  const first = await previews(collection).nth(0).boundingBox();
+  const second = await previews(collection).nth(1).boundingBox();
+  expect(Math.abs(first!.x - second!.x)).toBeLessThan(2);
+  expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
   await assertContained(page);
-  await assertPageDoesNotScrollSideways(page);
 });
 
 /**
@@ -238,28 +212,27 @@ test("a card's control is invisible, takes no room, and shows keyboard focus on 
  * quiet place to select a definition from; the guards are what let the click come back without
  * taking that away, and they are the half of this feature a reader hits first.
  */
-test("a card is picked by the first click and opened by the second", async ({ page }) => {
+test("a card opens on its first click with the legacy preference enabled", async ({ page }) => {
   const collection = await openReference(page);
-  await expect(collection).toHaveAttribute("data-cards", "focus");
+  await expect(collection).toHaveAttribute("data-cards", "single");
   const card = collection.locator(":scope > .result").nth(1);
   const tab = card.locator("> .disclose");
-  const body = card.locator("> .card");
 
   // At rest: nothing about this card is picked.
   await expect(card).not.toHaveAttribute("data-focused", "");
 
-  // One click picks it, and nothing has opened.
-  await body.click();
+  // The first click selects and opens the entry together.
+  await clickCard(card);
   await expect(card).toHaveAttribute("data-focused", "");
-  await expect(tab).toHaveAttribute("aria-expanded", "false");
-  await expect(collection.locator(".inline-detail")).toHaveCount(0);
+  await expect(tab).toHaveAttribute("aria-expanded", "true");
+  await expect(collection.locator(".inline-detail")).toHaveCount(1);
 
-  // The second opens it. Follow the key: opening promotes the card to the front.
+  // A second preview click closes the same entry.
   const key = await tab.getAttribute("data-result");
   const opened = collection.locator(`.disclose[data-result="${key}"]`);
-  await body.click();
-  await expect(opened).toHaveAttribute("aria-expanded", "true");
-  await expect(collection.locator(".inline-detail")).toHaveCount(1);
+  await clickCard(card);
+  await expect(opened).toHaveAttribute("aria-expanded", "false");
+  await expect(collection.locator(".inline-detail")).toHaveCount(0);
 });
 
 /**
@@ -273,9 +246,7 @@ test("copying a word and selecting text never open a card", async ({ page }) => 
   const card = collection.locator(":scope > .result").nth(1);
   const tab = card.locator("> .disclose");
 
-  // Pick the card first, so the *next* click is the one that would open it — the guards have to
-  // hold at the step where they actually matter.
-  await card.locator("> .card").click();
+  // Copy and drag must leave the initially closed entry closed.
   await expect(tab).toHaveAttribute("aria-expanded", "false");
 
   // A control inside the card belongs to that control.
@@ -295,18 +266,10 @@ test("copying a word and selecting text never open a card", async ({ page }) => 
   await expect(collection.locator(".inline-detail")).toHaveCount(0);
 });
 
-/**
- * **The other half of the A/B, and the assertion that proves the setting switches.**
- *
- * `focus_before_open` off is the one-click model: a click on a card opens it, and a click on the
- * open card's preview closes it. Until 2026-10-17 that click went to a tab that rolled out under
- * a resting pointer; the tab is gone and the card takes the click. Without this test the setting
- * could be wired to nothing and the suite would stay green, because every other test here runs in
- * the default model.
- */
-test("with the setting off, one click on a card opens it and one more closes it", async ({ page }) => {
+/** Older stored values must not bring back a two-step activation. */
+test("the legacy preference off also uses one click to open and close", async ({ page }) => {
   const collection = await openReference(page, "parts", "eat", "&cards=hover");
-  await expect(collection).toHaveAttribute("data-cards", "hover");
+  await expect(collection).toHaveAttribute("data-cards", "single");
   // **Follow the card, not the position.** Opening promotes it to the front of the collection, so
   // `nth(1)` is a different result the moment the click lands; `data-result` is the identity that
   // survives the trip.
@@ -323,136 +286,40 @@ test("with the setting off, one click on a card opens it and one more closes it"
 });
 
 
-/**
- * **Every expansion moves the list the same way, the first card included.**
- *
- * Expanding any card but the first reorders the collection, so the keyed `{#each}` updates and
- * `animate:flip` slides everything to its new place. The first card reorders nothing — it is
- * already at the front — and while `promoteSelected` handed its input back unchanged, that
- * meant no update, no flip, and the one expansion where the cards below jumped.
- *
- * **This test forces `--anim` on.** Headless Edge reports `prefers-reduced-motion: reduce`, so
- * `theme.css` sets `--anim: 0ms` and the rest of the suite measures a still page — which is why
- * its screenshots are stable and why nothing else here would have caught this. With `--anim` at
- * zero `flip` still runs, but for no time at all, so the question has to be asked while it does.
- */
-test("expanding the first card slides the list, exactly as expanding any other does", async ({ page }) => {
-  await page.addInitScript(() => {
-    const style = document.createElement("style");
-    style.textContent = ":root { --anim: 180ms !important; }";
-    const install = () => document.head.append(style);
-    if (document.head) install();
-    else document.addEventListener("DOMContentLoaded", install, { once: true });
-  });
+test("opening an entry preserves preceding rows and reveals its heading", async ({ page }) => {
   const collection = await openReference(page);
-
-  /**
-   * Whether a neighbour is actually animated while `nth` is opened.
-   *
-   * **Asked of the animation, not of the pixels.** Sampling positions and counting distinct ones
-   * measures the frame rate as much as the behaviour, and under three parallel workers it drops
-   * to the two samples a jump also produces. `animate:flip` drives the Web Animations API, so the
-   * element can simply be asked. Nothing else animates a `.result`.
-   */
-  async function slides(nth: number, watch: number) {
-    const card = collection.locator(":scope > .result").nth(nth);
-    const tab = card.locator("> .disclose");
-    // Picked first, so the click the watcher times is the one that opens the card.
-    await pick(card);
-    const watched = page.evaluate((index) => new Promise<boolean>((done) => {
-      const started = Date.now();
-      const look = setInterval(() => {
-        const neighbour = document.querySelectorAll(".result")[index] as HTMLElement;
-        if (neighbour.getAnimations().length > 0) {
-          clearInterval(look);
-          done(true);
-          // Generous, because it resolves the instant an animation appears: this only has to
-          // outlast a click dispatched slowly under parallel workers, and never delays a pass.
-        } else if (Date.now() - started > 8000) {
-          clearInterval(look);
-          done(false);
-        }
-      }, 8);
-    }), watch);
-    await clickCard(card);
-    const animated = await watched;
-    await page.keyboard.press("Escape");
-    await expect(tab).toHaveAttribute("aria-expanded", "false");
-    return animated;
-  }
-
-  expect(await slides(0, 1), "the first card").toBe(true);
-  expect(await slides(2, 0), "any other card").toBe(true);
+  const firstKey = await openers(collection).first().getAttribute("data-result");
+  const target = openers(collection).nth(2);
+  await toggle(target);
+  await expect(target).toHaveAttribute("aria-expanded", "true");
+  await expect(openers(collection).first()).toHaveAttribute("data-result", firstKey!);
+  const bounds = await collection.boundingBox();
+  const heading = await previews(collection).nth(2).boundingBox();
+  expect(heading!.y).toBeGreaterThanOrEqual(bounds!.y - 1);
+  expect(heading!.y).toBeLessThan(bounds!.y + bounds!.height);
 });
 
 
-/**
- * Promotion: the opened result is lifted to the front of the collection, in every layout.
- *
- * **The grid needs it more than the list does.** An expanded result is `grid-column: 1 / -1`, so
- * in Cards it tears the grid open wherever it sits — opening the third of three put the entry
- * below both its siblings, with the word that had just been clicked stranded mid-screen.
- *
- * Asserted at every viewport rather than only where the layout toggle exists, because being
- * unconditional is the point: Rows, and Cards below `42rem` which is drawn as a single column,
- * must not expand differently for a reason nothing on screen can show.
- */
-test("the opened result is lifted to the front of the collection, in either layout", async ({ page }) => {
+test("opening, navigating and closing retain the original result order", async ({ page }) => {
   const collection = await openReference(page);
-  // Scoped through `.preview`, so an expanded card's own detail cannot contribute a headword.
-  const order = () => collection.locator(":scope > .result > .card > .preview .identity").allTextContents();
-  const composed = await order();
-  expect(composed.length).toBeGreaterThan(2);
-  const promotedOrder = [composed[1], composed[0], ...composed.slice(2)];
-
-  await toggle(openers(collection).nth(1));
-  await expect.poll(order).toEqual(promotedOrder);
-
-  // Arrow keys count the arrangement rather than the answer. Resolved against the unpromoted
-  // list this still moves focus, just to the wrong card — so assert the identity, not that
-  // something got focus.
-  const promoted = openers(collection).nth(0);
-  await promoted.focus();
-  await promoted.press("ArrowDown");
-  await expect(openers(collection).nth(1)).toBeFocused();
-
-  // Collapsing hands the answer back in the order the search composed it, and the card keeps
-  // focus on the way down. Focusing it is also what scrolls it back into view.
+  const order = () => openers(collection).evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-result")));
+  const before = await order();
+  const target = openers(collection).nth(1);
+  await toggle(target);
+  await expect.poll(order).toEqual(before);
+  await target.focus();
+  await target.press("ArrowDown");
+  await expect(openers(collection).nth(2)).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect.poll(order).toEqual(composed);
-  await expect(openers(collection).nth(1)).toBeFocused();
-  await expect(openers(collection).nth(1)).toHaveAttribute("aria-expanded", "false");
-
-  // **A promoted card is scrolled to its head.** Expanding the last result from the bottom of a
-  // scrolled collection must bring the reader back to the top, where the card now is. This is
-  // the assertion that pays for the feature: promotion that leaves you looking at the middle of
-  // the entry you opened has moved the card without moving you.
-  const deep = await collection.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-    element.dispatchEvent(new Event("scroll"));
-    return element.scrollTop;
-  });
-  if (deep > 0) {
-    await toggle(openers(collection).last());
-    await expect.poll(() => collection.evaluate((element) => element.scrollTop)).toBe(0);
-    await page.keyboard.press("Escape");
-  }
-
-  // The other layout, where one exists, does the same thing.
-  const rows = page.getByRole("button", { name: /Show as rows/ });
-  if (await rows.isVisible()) {
-    await rows.click();
-    await toggle(openers(collection).nth(1));
-    await expect.poll(order).toEqual(promotedOrder);
-    await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: /Show as cards/ }).click();
-  }
-
+  await expect(target).toBeFocused();
+  await expect.poll(order).toEqual(before);
+  await toggle(openers(collection).last());
+  await expect.poll(order).toEqual(before);
   await assertContained(page);
   await assertPageDoesNotScrollSideways(page);
 });
 
-test("a uniquely direct result auto-expands across the complete Cards grid", async ({ page }) => {
+test("a uniquely direct result auto-expands in its stable row", async ({ page }) => {
   const collection = await openReference(page, "mixed", "図");
   const first = previews(collection).first();
   await expect(first).toContainText("図");
@@ -493,23 +360,23 @@ test("balanced previews keep heavyweight detail work lazy and expose stable acce
         - button "Copy 図書館": Copy this word to the clipboard
         - text: 図書館 としょかん
         - button "Hear 図書館": ▶ Hear this word
-        - text: Noun 1. library
+        - text: Word · Noun 1. library
         - button "Show details for 図書館"
       - listitem:
         - button "Copy 食べる": Copy this word to the clipboard
-        - text: 食べる たべる Verb 1. to eat
+        - text: 食べる たべる Word · Verb 1. to eat
         - button "Show details for 食べる"
       - listitem:
         - button "Copy 早い": Copy this word to the clipboard
-        - text: 早い はやい Adjective 1. fast; early
+        - text: 早い はやい Word · Adjective 1. fast; early
         - button "Show details for 早い"
       - listitem:
         - button "Copy 相槌": Copy this word to the clipboard
-        - text: 相槌 あいづち Other 1. aizuchi; a listener's interjection
+        - text: 相槌 あいづち Word · Other 1. aizuchi; a listener's interjection
         - button "Show details for 相槌"
       - listitem:
         - button "Copy 道中": Copy this word to the clipboard
-        - text: 道中 どうちゅう Noun · Adverb 1. journey; trip; travels 2. during the journey; on the way; while travelling
+        - text: 道中 どうちゅう Word · Noun · Adverb 1. journey; trip; travels 2. during the journey; on the way; while travelling
         - button "Show details for 道中"
   `);
 
@@ -535,7 +402,7 @@ test("balanced previews keep heavyweight detail work lazy and expose stable acce
 
   if (testInfo.project.name === "edge-900-100") {
     await expect(collection).toHaveScreenshot("reference-workspace.png", { animations: "disabled" });
-    await page.getByRole("button", { name: /Show as rows/ }).click();
+    await page.keyboard.press("Escape");
     await expect(collection).toHaveScreenshot("reference-rows.png", { animations: "disabled" });
   }
 });
@@ -572,7 +439,7 @@ test("a card names every kind its word belongs to, filtered or not", async ({ pa
   await expect(journey).toContainText("Adverb");
   await expect(journey).toContainText("Noun");
 
-  await page.getByRole("button", { name: "Show all words" }).click();
+  await page.getByRole("button", { name: "Clear word filters" }).click();
   await expect(previews(collection)).toHaveCount(5);
   await assertContained(page);
   await assertPageDoesNotScrollSideways(page);
@@ -600,7 +467,7 @@ test("filtering to a kind shows the meanings of that kind", async ({ page }) => 
   await expect(journey).not.toContainText("journey; trip; travels");
 
   // And back, so the narrowing is a view and not a mutation of the result.
-  await page.getByRole("button", { name: "Show all words" }).click();
+  await page.getByRole("button", { name: "Clear word filters" }).click();
   await expect(journey).toContainText("journey; trip; travels");
   await assertContained(page);
 });
@@ -637,30 +504,16 @@ test("choosing one and choosing many are different controls", async ({ page }) =
   await assertPageDoesNotScrollSideways(page);
 });
 
-/**
- * **The frame closes correctly however many rows it holds.**
- *
- * The filters are one bordered surface divided by hairlines, in the search field’s own
- * construction. Its rows are independently conditional — parts of speech appear only for the
- * All and Words facets when there are word results, and the ranking line only when a frequency
- * list is installed — so the divider belongs to each row that can *follow*, never to a
- * `> * + *` rule. `traps.md` records that form silently missing a component sibling.
- */
-test("the filter frame holds one row as cleanly as three", async ({ page }) => {
-  await openReference(page);
-  const frame = page.locator(".filters");
-  await expect(frame.locator(".facets")).toHaveCount(1);
-  await expect(frame.locator(".pos")).toHaveCount(1);
-
-  // A facet with no words hides the parts of speech, leaving the frame holding its first row
-  // only — which carries no top border, so there is no divider left hanging in it.
-  await page.getByRole("radio", { name: /^Kanji 0$/ }).click();
-  await expect(frame).toBeVisible();
-  await expect(frame.locator(".facets")).toHaveCount(1);
-  await expect(frame.locator(".pos")).toHaveCount(0);
-
+test("word filters are a disclosure and active scope stays visible when shut", async ({ page }) => {
+  const collection = await openReference(page);
+  const details = page.locator(".word-filter-bar details");
+  await page.getByRole("button", { name: /^Noun 2$/ }).click();
+  await details.locator("summary").click();
+  await expect(page.getByText("Words only: Noun", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Clear word filters" })).toBeVisible();
+  await page.getByRole("button", { name: "Clear word filters" }).click();
+  await expect(previews(collection)).toHaveCount(5);
   await assertContained(page);
-  await assertPageDoesNotScrollSideways(page);
 });
 
 /**
@@ -723,7 +576,7 @@ test("filtering by part of speech leaves only words, and only where the row is",
   await expect(patterns).toHaveCount(0);
 
   // The row is not drawn on Grammar, so the leftover selection must not apply there.
-  await page.getByRole("radio", { name: /^Grammar 1$/ }).click();
+  await page.getByRole("radio", { name: /^Grammar patterns 1$/ }).click();
   await expect(kinds).toHaveCount(0);
   await expect(patterns).toHaveCount(1);
 
@@ -753,7 +606,7 @@ test("preview senses are numbered by their place in the word", async ({ page }) 
   await expect.poll(numbers).toEqual(["2."]);
 
   // A result that is not a word has one summary line, not a numbered list.
-  await page.getByRole("button", { name: "Show all words" }).click();
+  await page.getByRole("button", { name: "Clear word filters" }).click();
   await expect(previews(collection).filter({ hasText: "相槌" }).locator(".scent .n")).toHaveCount(1);
 
   await assertContained(page);
@@ -804,47 +657,14 @@ test("a capped search says so, and an uncapped one stays quiet", async ({ page }
   await assertContained(page);
 });
 
-/**
- * The detail reads down a measured column, with the character panel beside it.
- *
- * **Two problems, one layout.** The detail had no `max-width`, so a sense reading "1. what" was
- * forty pixels of ink on an eight-hundred pixel line. And the character panel was stacked *above*
- * the word's senses, which put the kanji's meanings and the word's under two identical MEANINGS
- * headings. Putting the panel in a column beside the word fixes the second by construction and
- * gives the first somewhere for its freed space to go.
- */
-test("the expanded word reads at a measure, with its character panel beside it", async ({ page }) => {
-  await page.goto("/?qa=reference");
-  await page.getByRole("button", { name: "Reference" }).click();
-  const search = page.getByRole("textbox", { name: "Search Reference" });
-  await search.fill("図書館");
-  await search.press("Enter");
-  const collection = page.getByRole("list", { name: "Reference results" });
-  const detail = collection.locator(".inline-detail");
-  await expect(detail).toBeVisible();
-
-  // A sole result opens itself, so the panel is one click away rather than two.
-  await expect(detail.locator(".beside")).toHaveCount(1);
-
-  const shape = await detail.evaluate((el) => {
-    const word = el.querySelector(".word-column")!.getBoundingClientRect();
-    const beside = el.querySelector(".beside")!.getBoundingClientRect();
-    return { wordRight: word.right, besideLeft: beside.left, wordWidth: word.width, besideWidth: beside.width };
-  });
-
-  if (await isWide(page)) {
-    // Side by side, and the panel has room for its own label column — given only the leftover it
-    // came out at 168px and wrapped KUN-YOMI onto two lines, which is the one thing it exists to
-    // show. 15rem is the floor it asks for.
-    expect(shape.besideLeft).toBeGreaterThanOrEqual(shape.wordRight - 1);
-    expect(shape.besideWidth).toBeGreaterThanOrEqual(15 * 15 - 1);
-  } else {
-    // Stacked, and the panel is back in the flow under the word.
-    expect(shape.besideLeft).toBeLessThan(shape.wordRight);
-  }
-
+test("the expanded word leads with compact character choices, not character articles", async ({ page }) => {
+  const collection = await openReference(page, "standard", "図書館");
+  const word = await collection.locator(".word-column").boundingBox();
+  const choices = await collection.locator(".character-choices").boundingBox();
+  expect(choices!.y).toBeGreaterThanOrEqual(word!.y + word!.height);
+  await expect(collection.locator(".character")).toHaveCount(0);
+  await expect(collection.getByRole("button", { name: /^Study / })).toHaveCount(3);
   await assertContained(page);
-  await assertPageDoesNotScrollSideways(page);
 });
 
 /**
@@ -860,42 +680,28 @@ test("the character panel does not repeat the word's heading", async ({ page }) 
   const detail = page.getByRole("list", { name: "Reference results" }).locator(".inline-detail");
   await expect(detail).toBeVisible();
 
-  await expect(detail.locator(".beside")).toContainText("Character meanings");
+  await detail.getByRole("button", { name: "Study 図", exact: true }).click();
+  await expect(detail.locator(".character-inspector")).toContainText("Character meanings");
   const headings = await detail.locator(".section").allTextContents();
   const meanings = headings.filter((text) => text.trim().toLowerCase() === "meanings");
   expect(meanings, `one heading may say Meanings, got ${JSON.stringify(headings)}`).toHaveLength(1);
 });
 
-/**
- * The measure holds when there is room to break it.
- *
- * **This test has to build its own conditions, and that is the finding.** At every viewport the
- * suite runs, the grid track is already narrower than `65ch`, so the cap changes nothing and an
- * assertion on the rendered width would pass with `max-width` deleted — it did, when first
- * written. The page fills the window, and the aside is capped at 20rem, so on a wide window every
- * extra pixel goes to the prose. That is the case the cap exists for, and the only way to see it
- * is to make it.
- */
-test("a very wide window does not stretch the definitions to fill it", async ({ page }) => {
-  await page.setViewportSize({ width: 1500, height: 700 });
-  await page.goto("/?qa=reference");
-  await page.getByRole("button", { name: "Reference" }).click();
-  const search = page.getByRole("textbox", { name: "Search Reference" });
-  await search.fill("図書館");
-  await search.press("Enter");
-  const detail = page.getByRole("list", { name: "Reference results" }).locator(".inline-detail");
-  await expect(detail).toBeVisible();
-  await expect(detail.locator(".beside")).toHaveCount(1);
-
+test("a wide Reference fills the page while prose keeps a readable measure", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  const collection = await openReference(page, "standard", "図書館");
+  const detail = collection.locator(".inline-detail");
   const measured = await detail.evaluate((el) => ({
     detail: el.getBoundingClientRect().width,
-    word: (el.querySelector(".word-column") as HTMLElement).getBoundingClientRect().width,
+    word: el.querySelector(".word-column")!.getBoundingClientRect().width,
   }));
-  expect(measured.detail, "the window really is wide here").toBeGreaterThan(1000);
-  expect(
-    measured.word,
-    "the prose keeps its measure while the window grows past it",
-  ).toBeLessThan(measured.detail * 0.7);
+  expect(measured.detail).toBeGreaterThan(1300);
+  expect(measured.word).toBeLessThan(measured.detail * 0.7);
+  await detail.getByRole("button", { name: "Study 図", exact: true }).click();
+  const word = await detail.locator(".word-column").boundingBox();
+  const inspector = await detail.locator(".character-inspector").boundingBox();
+  expect(inspector!.x).toBeGreaterThanOrEqual(word!.x + word!.width);
+  await assertContained(page);
 });
 
 /**
@@ -922,18 +728,10 @@ test("senses of different kinds are drawn in different colours", async ({ page }
   }
   expect(rules[0]).not.toBe(rules[1]);
 
-  // The filter chip wears what its senses wear, so narrowing and reading are one thing.
+  // Filters now use a neutral selected treatment; sense classification colours remain.
   const chip = page.getByRole("button", { name: /^Noun/ });
   await chip.click();
-  // Off the chip before measuring: `:hover` is more specific than `.current`, so a chosen chip
-  // still under the pointer reads `--text`. That is how every control here has always behaved and
-  // is not what this test is about.
-  await page.mouse.move(0, 0);
-  const chipColour = await chip.evaluate((el) => getComputedStyle(el).color);
-  const nounRule = rules[0];
-  expect(nounRule, `chip ${chipColour} should appear in the sense rule`).toContain(
-    chipColour.replace("rgb(", "").replace(")", ""),
-  );
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
 
   await assertContained(page);
 });
@@ -968,41 +766,15 @@ test("a particle's senses are classified like any other word's", async ({ page }
   await assertContained(page);
 });
 
-/**
- * The kanji panel's readings finish where the card does.
- *
- * The value column used to be `1fr`, so it took every pixel left in the panel and the readings
- * began wherever the labels happened to end — leaving a ragged margin of empty card beside them.
- */
-test("the kanji readings run to the card's right edge", async ({ page }) => {
-  await page.goto("/?qa=reference");
-  await page.getByRole("button", { name: "Reference" }).click();
-  const search = page.getByRole("textbox", { name: "Search Reference" });
-  await search.fill("図書館");
-  await search.press("Enter");
-  const detail = page.getByRole("list", { name: "Reference results" }).locator(".inline-detail");
-  await expect(detail).toBeVisible();
-  // Three of them: 図書館 is three kanji and every one is open, so this now measures the whole
-  // stack against a single right edge rather than one panel against its own.
-  await expect(detail.locator(".facts")).toHaveCount(3);
-  await expect(detail.locator(".facts").first()).toBeVisible();
-
-  // **Measured on the readings, not on the box that holds them.** `.facts` spans its grid track
-  // either way, so its own right edge sits at the panel edge even when the values stop well short
-  // of it — an assertion on that passed with the old `1fr` still in place. What moved is where the
-  // *text* ends, so that is what this reads.
-  const geometry = await detail.evaluate((el) => {
-    const holder = (el.querySelector(".beside") ?? el).getBoundingClientRect();
-    const values = [...el.querySelectorAll(".facts dd")];
-    const rightmost = Math.max(...values.map((dd) => dd.getBoundingClientRect().right));
-    const contentRight = Math.max(
-      ...values.flatMap((dd) => [...dd.children].map((child) => child.getBoundingClientRect().right)),
-    );
-    return { holderRight: holder.right, rightmost, contentRight };
-  });
-  expect(geometry.rightmost).toBeCloseTo(geometry.holderRight, 0);
-  // The readings themselves reach the edge, rather than the cell that contains them doing so.
-  expect(geometry.holderRight - geometry.contentRight).toBeLessThan(24);
+test("requested character facts read from a consistent left edge", async ({ page }) => {
+  const collection = await openReference(page, "standard", "図書館");
+  await collection.getByRole("button", { name: "Study 図", exact: true }).click();
+  const facts = collection.locator(".facts");
+  await expect(facts).toBeVisible();
+  const positions = await facts.locator("dt").evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().left));
+  expect(Math.max(...positions) - Math.min(...positions)).toBeLessThan(1);
+  expect(await facts.locator("dd").first().evaluate((el) => getComputedStyle(el).justifyContent)).toBe("flex-start");
+  await assertContained(page);
 });
 
 /**
@@ -1021,7 +793,6 @@ test("repeated clicks keep toggling a card", async ({ page }) => {
   // same thing in both states.
   const body = collection.locator(`.result:has(> .disclose[data-result="${key}"]) .preview`);
 
-  await body.click();
   await expect(tab).toHaveAttribute("aria-expanded", "false");
   // Four in a row, at the same spot and at speed — which is what makes Chromium call them
   // double- and triple-clicks and start selecting words under the pointer.
@@ -1031,16 +802,17 @@ test("repeated clicks keep toggling a card", async ({ page }) => {
   }
 });
 
-test("a double-click on a card still opens it", async ({ page }) => {
+test("a double-click toggles twice without disabling later single clicks", async ({ page }) => {
   const collection = await openReference(page);
   const start = collection.locator(":scope > .result").nth(1);
   const key = await start.locator("> .disclose").getAttribute("data-result");
   const tab = collection.locator(`.disclose[data-result="${key}"]`);
   const body = collection.locator(`.result:has(> .disclose[data-result="${key}"]) > .card`);
 
-  // Two clicks is exactly the gesture the model asks for, so a reader who makes them quickly is
-  // making the *intended* gesture — and gets a word selected for their trouble.
+  // Two clicks open then close; browser word selection must not swallow either event.
   await body.dblclick();
+  await expect(tab).toHaveAttribute("aria-expanded", "false");
+  await clickCard(start);
   await expect(tab).toHaveAttribute("aria-expanded", "true");
 });
 
@@ -1049,7 +821,6 @@ test("a selection made elsewhere does not freeze a card", async ({ page }) => {
   const start = collection.locator(":scope > .result").nth(1);
   const key = await start.locator("> .disclose").getAttribute("data-result");
   const tab = collection.locator(`.disclose[data-result="${key}"]`);
-  const body = collection.locator(`.result:has(> .disclose[data-result="${key}"]) > .card`);
 
   // Select something on a different card and leave it selected.
   const other = collection.locator(":scope > .result").nth(2).locator(".identity").first();
@@ -1061,10 +832,10 @@ test("a selection made elsewhere does not freeze a card", async ({ page }) => {
   expect(await page.evaluate(() => window.getSelection()?.toString() ?? "")).not.toBe("");
 
   // A stale selection anywhere on the page is not a reason to ignore a click over here.
-  await body.click();
-  await expect(tab).toHaveAttribute("aria-expanded", "false");
-  await body.click();
+  await clickCard(start);
   await expect(tab).toHaveAttribute("aria-expanded", "true");
+  await clickCard(start);
+  await expect(tab).toHaveAttribute("aria-expanded", "false");
 });
 
 /**
@@ -1222,66 +993,17 @@ test("clicking inside an open card's detail never closes it", async ({ page }) =
   await expect(tab).toHaveAttribute("aria-expanded", "false");
 });
 
-/**
- * **Every kanji of the word, open, stacked, and hanging off one right edge.**
- *
- * Two properties that were separately wrong. The characters used to open one at a time behind a
- * row of chips, so a three-kanji word was three decisions made from nothing but the glyph. And the
- * readings were justified right while the headings, meanings and compounds under them started at
- * the panel's far left — one narrow column with two margins in it.
- */
-test("every kanji of a word is open, stacked, and aligned to one edge", async ({ page }) => {
-  await page.goto("/?qa=reference");
-  await page.getByRole("button", { name: "Reference" }).click();
-  const search = page.getByRole("textbox", { name: "Search Reference" });
-  await search.fill("図書館");
-  await search.press("Enter");
-  const detail = page.getByRole("list", { name: "Reference results" }).locator(".inline-detail");
-  await expect(detail).toBeVisible();
-
-  // Open with no press at all, one per kanji, in the order the word is read in.
-  const panels = detail.locator(".beside > .character");
-  await expect(panels).toHaveCount(3);
-  // The plain glyph is swapped for the stroke diagram once that arrives, so the character has to
-  // be read off whichever of the two is standing.
-  const glyphs = await panels.evaluateAll((els) =>
-    els.map((el) => {
-      const drawn = el.querySelector(".visual .glyph")?.textContent?.trim();
-      if (drawn) return drawn;
-      const label = el.querySelector("[aria-label^='Stroke-order diagram for']")?.getAttribute("aria-label");
-      return label ? label.slice(-1) : "";
-    }));
-  expect(glyphs).toEqual(["図", "書", "館"]);
-
-  // Stacked: each starts below the one before it, and none share a row.
-  const tops = await panels.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top));
-  for (const [at, top] of tops.slice(1).entries()) {
-    expect(top, `panel ${at + 1} sits below panel ${at}`).toBeGreaterThan(tops[at]);
+test("all word characters remain available while only one article opens at a time", async ({ page }) => {
+  const collection = await openReference(page, "standard", "図書館", "&keyboard=tab");
+  for (const character of ["図", "書", "館"]) {
+    await collection.getByRole("button", { name: `Study ${character}`, exact: true }).click();
+    await expect(collection.locator(".character")).toHaveCount(1);
+    await expect(collection.getByRole("complementary", { name: `Details for ${character}` })).toBeVisible();
+    await expect(collection.getByRole("img", { name: `Stroke-order diagram for ${character}` })).toBeVisible();
   }
-
-  // **One right edge for everything in the column.** Headings, meanings and readings all finish
-  // against it — the ragged left margin they used to start from is what this replaces. Measured
-  // on the text, because a block element spans its track whatever its text does.
-  const edges = await detail.evaluate((el) => {
-    const column = el.querySelector(".beside")!.getBoundingClientRect().right;
-    // **A range over the text, not the element's own box.** A block spans its column whatever its
-    // text does, so measuring `getBoundingClientRect()` would pass just as happily on the
-    // left-aligned layout this replaces — which is the whole thing under test. A range bounds the
-    // rendered glyphs, and it handles the wrapped flex rows of readings too, where only the last
-    // chip on a line reaches the edge.
-    const reach = (node: Element) => {
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      return range.getBoundingClientRect().right;
-    };
-    const groups = [...el.querySelectorAll(".beside .section, .beside .meanings li, .beside .facts dd")];
-    return { column, gaps: groups.map((node) => column - reach(node)) };
-  });
-  expect(edges.gaps.length, "there is text of each kind to measure").toBeGreaterThan(5);
-  for (const gap of edges.gaps) {
-    expect(gap, "every line finishes against the column's right edge").toBeLessThan(2);
-    expect(gap, "and none of it overflows past that edge").toBeGreaterThan(-2);
-  }
+  await collection.getByRole("button", { name: "Close character details" }).click();
+  await expect(collection.locator(".character")).toHaveCount(0);
+  await expect(collection.getByRole("button", { name: "Study 館", exact: true })).toBeFocused();
 });
 
 /**
@@ -1340,6 +1062,7 @@ test("a suffix-only kanji reading is written with a wave dash", async ({ page })
   await search.press("Enter");
   const detail = page.getByRole("list", { name: "Reference results" }).locator(".inline-detail");
   await expect(detail).toBeVisible();
+  await detail.getByRole("button", { name: "Study 書", exact: true }).click();
 
   const readings = await detail.locator(".facts .reading").allTextContents();
   expect(readings, "the marked reading is written with a wave dash").toContain("〜がき");
@@ -1363,6 +1086,7 @@ test("okurigana is drawn a step fainter than the reading it follows", async ({ p
   await search.press("Enter");
   const detail = page.getByRole("list", { name: "Reference results" }).locator(".inline-detail");
   await expect(detail).toBeVisible();
+  await detail.getByRole("button", { name: "Study 書", exact: true }).click();
 
   // The period is gone from what is drawn, and both halves survive it.
   const readings = await detail.locator(".facts .reading").allTextContents();
@@ -1432,37 +1156,12 @@ test("the headword and its reading group more tightly than the controls around t
   ).toBeGreaterThan(gaps.identity! + 2);
 });
 
-/**
- * **The two columns of an opened word start on one line.**
- *
- * `MEANINGS` leads the word and `CHARACTERS` leads the kanji beside it; they are the same rank of
- * thing and a reader takes them in together. `.section` carries a top margin meant to separate a
- * heading from whatever ran above it, and at the top of a column there is nothing above it — so
- * zeroing it on one column and not the other put the two thirteen pixels apart.
- */
-test("the word and character columns lead with headings on one line", async ({ page }) => {
-  await page.goto("/?qa=reference");
-  await page.getByRole("button", { name: "Reference" }).click();
-  const search = page.getByRole("textbox", { name: "Search Reference" });
-  await search.fill("図書館");
-  await search.press("Enter");
-  const detail = page.getByRole("list", { name: "Reference results" }).locator(".inline-detail");
-  await expect(detail).toBeVisible();
-
-  const wide = await page.locator(".reference").evaluate((el) => el.getBoundingClientRect().width >= 672);
-  test.skip(!wide, "below the breakpoint the two columns stack, so there is no line to share");
-
-  const tops = await detail.evaluate((el) => {
-    const top = (node: Element | null) => (node ? node.getBoundingClientRect().top : null);
-    return {
-      meanings: top(el.querySelector(".word-column > .section")),
-      characters: top(el.querySelector(".beside > .section")),
-    };
-  });
-
-  expect(tops.meanings, "the word column leads with a heading").not.toBeNull();
-  expect(tops.characters, "and so does the character column").not.toBeNull();
-  expect(Math.abs(tops.meanings! - tops.characters!)).toBeLessThan(2);
+test("at ordinary widths the requested character stacks below the word", async ({ page }) => {
+  const collection = await openReference(page, "standard", "図書館");
+  await collection.getByRole("button", { name: "Study 図", exact: true }).click();
+  const word = await collection.locator(".word-column").boundingBox();
+  const inspector = await collection.locator(".character-inspector").boundingBox();
+  expect(inspector!.y).toBeGreaterThanOrEqual(word!.y + word!.height);
 });
 
 

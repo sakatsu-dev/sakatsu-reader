@@ -21,5 +21,6 @@ python scripts/export-logo.py
 
 The exporter reads the current rail outline and default colors, creates the SVGs
 and PNGs with Inkscape, and refuses output if the path geometry changes during
-export. The app's rail and installed application icons are not replaced by this
-export. Artwork is distributed under the project's GPL-3.0-only licence.
+export. Add `--app-icons` to refresh the UI logo and installed application icons
+from the same avatar master used by the sakatsu-dev organization. The rail keeps
+its unframed outline. Artwork is distributed under the project's GPL-3.0-only licence.

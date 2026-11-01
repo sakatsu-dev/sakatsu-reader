@@ -11,6 +11,9 @@
   import { pronunciation } from "./lib/pronunciation.svelte";
   import { defaultTheme, paint, watchTheme, type Theme } from "./lib/theme-live";
   import AppMenu from "./lib/AppMenu.svelte";
+  import Startup from "./lib/Startup.svelte";
+  let startupDone = $state(false);
+  let startupSettingsFailed = $state(false);
   import { PRESETS, palettesFor } from "./lib/theme.js";
   import type {
     AnalyzerChoice,
@@ -47,7 +50,6 @@
     SentenceTranslation,
     VariantTranslations,
     WarmupDiagnostics,
-    OperationResult,
     RuntimeStatus,
   } from "./model";
   // The same word/punctuation rule the reader draws with, so the arrow keys stop on
@@ -59,7 +61,6 @@
   import { operationController } from "./lib/operation-controller.js";
   import { expandForContext, resolvePath } from "./lib/component-context.js";
   import { noticeFor } from "./lib/execution-notice.js";
-  import { recognitionPhrase, sameRequest } from "./lib/runtime-status.js";
   import { repairNoteFor } from "./lib/repair-note.js";
   import { settingsPersistence } from "./lib/settings-persistence.js";
   import { errorMessage, saveFailure, SETTINGS_NOT_SAVED, STATUS_NOT_SAVED } from "./lib/save-notice.js";
@@ -77,6 +78,7 @@
   import Reader from "./lib/Reader.svelte";
   import TranslationCard from "./lib/TranslationCard.svelte";
   import SettingsPanel from "./lib/Settings.svelte";
+  import DictionaryUpdateNotice from "./lib/DictionaryUpdateNotice.svelte";
   import Glossary from "./lib/Glossary.svelte";
   import Kasumi from "./lib/Kasumi.svelte";
   import Help from "./lib/Help.svelte";
@@ -132,6 +134,7 @@
   /// the way out of one would become the way into the other and `cameFrom` would stop naming a
   /// page you were actually reading.
   function show(next: View) {
+    startupDone = true;
     if (DETOURS.includes(next) && !DETOURS.includes(view)) cameFrom = view;
     view = next;
   }
@@ -444,10 +447,6 @@
   /// which is the only thing that can report it — asking through a command would queue behind the
   /// very load being asked about.
   let ocrReady = $state(false);
-  /// What read the passage on screen, when a capture produced it: the recognition result for
-  /// *that* capture's request, kept with the text it produced. Shown only while the source still
-  /// is that text — a paste, an edit or a clipboard line retires it without anyone clearing it.
-  let recognitionOrigin = $state<{ text: string; result: OperationResult } | null>(null);
   /// Engines and last results, for Settings → Diagnostics. Read when that section opens.
   let runtimeStatus = $state<RuntimeStatus | null>(null);
   /// Whether the last read of it failed — distinct from not having been read yet.
@@ -474,6 +473,7 @@
   // the loaded values would immediately save them again.
   let furigana = $state(true);
   let markSeenOnFocus = $state(true);
+  // Round-trip the legacy preference; Reference and Glossary now always use one click.
   let focusBeforeOpen = $state(true);
   let tabNavigation = $state(false);
   let splitRatio = $state(0.45);
@@ -653,6 +653,7 @@
   let readClipboard = $state(false);
   let quiet = $state(true);
   let ichiranServer = $state(true);
+  let preloadIchiran = $state(true);
   let checkUpdatesOnStartup = $state(true);
   let logging = $state(false);
   let collectSentences = $state(false);
@@ -738,10 +739,6 @@
       engine: engineLabel(ocrEngine),
       binding: bindingLabel(captureBind),
       cycling: animations,
-      provenance:
-        recognitionOrigin && recognitionOrigin.text === text
-          ? recognitionPhrase(recognitionOrigin.result, ocrEngine, engineLabel)
-          : null,
     }),
   );
 
@@ -959,6 +956,7 @@
       readClipboard = saved.read_clipboard;
       quiet = saved.quiet;
       ichiranServer = saved.ichiran_server;
+      preloadIchiran = saved.preload_ichiran_on_startup;
       checkUpdatesOnStartup = saved.check_updates_on_startup;
       logging = saved.log;
       collectSentences = saved.collect_sentences;
@@ -982,7 +980,7 @@
       animationMs = saved.animation_ms;
       hideSetup = saved.hide_setup;
     })
-    .catch(() => {})
+    .catch(() => { startupSettingsFailed = true; })
     .finally(() => {
       // Record what is already stored, so applying the loaded values does not
       // immediately save them straight back.
@@ -1111,6 +1109,7 @@
   /// this can fail honestly instead: `read_frame` already refuses both when the frame is
   /// hidden and when there is none, and says which.
   async function capture() {
+    startupDone = true;
     if (capturing || busy) return;
     const request = captureController.begin();
     let captureFinished = false;
@@ -1122,16 +1121,6 @@
         return;
       }
       text = text_;
-      // What read it, for this request only. The status slot holds the latest published result,
-      // so the answer is kept only if it is this capture's and the source is still its text.
-      invoke<RuntimeStatus>("runtime_status")
-        .then((status) => {
-          const result = status.recognition;
-          if (result && sameRequest(result.request, request.request) && text === text_) {
-            recognitionOrigin = { text: text_, result };
-          }
-        })
-        .catch(() => {});
       // **Before analysis, and never allowed to fail the capture.** What goes over is exactly what
       // was recognised — the point is to hand the passage to something else, so anything this app
       // did to it afterwards would be the wrong text. A clipboard the OS refuses is not a reason
@@ -1791,6 +1780,7 @@
       read_clipboard: readClipboard,
       quiet,
       ichiran_server: ichiranServer,
+      preload_ichiran_on_startup: preloadIchiran,
       check_updates_on_startup: checkUpdatesOnStartup,
       log: logging,
       collect_sentences: collectSentences,
@@ -1864,6 +1854,7 @@
       read_clipboard: readClipboard,
       quiet,
       ichiran_server: ichiranServer,
+      preload_ichiran_on_startup: preloadIchiran,
       check_updates_on_startup: checkUpdatesOnStartup,
       log: logging,
       collect_sentences: collectSentences,
@@ -2214,6 +2205,7 @@
   }
 
   async function analyze() {
+    startupDone = true;
     if (busy) return;
     const passage = text;
     const request = analysisController.begin();
@@ -2541,6 +2533,10 @@
   /// traversal from whichever control happened to receive the last click. Buttons remain
   /// focusable by mouse — `onWindowClick` above is what stops that focus outliving the click.
   function onWindowKey(event: KeyboardEvent) {
+    if (!startupDone) {
+      if (event.key === "Escape") { startupDone = true; event.preventDefault(); }
+      return;
+    }
     // **Bare Tab only.** This exists to stop browser-style focus traversal, which is what an
     // unmodified Tab does. `Ctrl+Tab` is not traversal: the Reference page's tab strip claims it
     // to cycle searches the way every browser does, and swallowing it here would have meant the
@@ -2858,7 +2854,13 @@
     </Caption>
   </div>
 
-  <div class="workspace">
+  {#if !startupDone}
+    <Startup settings={settingsLoaded} settingsFailed={startupSettingsFailed}
+      resources={setup.loaded} resourcesFailed={Boolean(setup.error)}
+      needsSetup={Boolean(setup.snapshot && !setup.snapshot.required_ready)}
+      {titlebarHeight} animationMs={settingsLoaded ? animationMs : 0} oncontinue={() => { startupDone = true; }} />
+  {/if}
+  <div class="workspace" inert={!startupDone} style:z-index={startupDone ? undefined : 0}>
   <Sidebar
     {view}
     sakuraSpread={decorSakuraSpread}
@@ -2867,6 +2869,7 @@
   />
 
   <main style="--footer-h: {footerHeight}px">
+    <DictionaryUpdateNotice onmanage={() => { settingsSection = "search"; show("settings"); }} />
   <header>
     <!-- Off screen, not gone. The title bar draws "Sakatsu Reader" a centimetre above this,
          so printing it again would say the name twice — but that one is a `<span>`, because a
@@ -3060,7 +3063,7 @@
       onlindera={useLinderaForNow}
     />
   {:else if view === "glossary"}
-    <Glossary {allTerms} {patternsForTerm} {focusBeforeOpen} bind:sort={glossarySort} />
+    <Glossary {allTerms} bind:sort={glossarySort} />
   {:else if view === "help"}
     <!-- The three bindings go in rather than being written into the prose. A help page
          naming a hotkey somebody rebound is worse than one that says nothing at all. -->
@@ -3093,13 +3096,13 @@
     bind:markReadingGuesses
     bind:showWordParts
     bind:markSeenOnFocus
-    bind:focusBeforeOpen
     bind:tabNavigation
     bind:fontSize
     bind:readerScale
     bind:panelScale
     bind:quiet
     bind:ichiranServer
+    bind:preloadIchiran
     bind:checkUpdatesOnStartup
     oninstallupdate={() => settingsController.beforeExit(() => invoke<UpdateStatus>("update_install"))}
     bind:logging
@@ -3186,8 +3189,6 @@
       pronounce={playWordAudio}
       {audioBusy}
       {audioNotice}
-      {focusBeforeOpen}
-      bind:layout={referenceLayout}
     />
   {:else}
   {#if study && sourceState.kind === "compact"}

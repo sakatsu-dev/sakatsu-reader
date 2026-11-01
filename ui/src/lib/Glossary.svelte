@@ -1,27 +1,19 @@
 <script lang="ts">
-  // Every concept keeps a balanced preview in the browse collection. Only the selected preview
-  // mounts teaching detail, so Cards and Rows are presentation choices rather than different
-  // data/effect paths.
+  // Category and alphabetical order stay fixed while one term expands in place.
   import { onMount, tick } from "svelte";
-  import { flip } from "svelte/animate";
-  import { TERM_KINDS, type GlossarySort, type GrammarPattern, type Term } from "../model";
+  import { TERM_KINDS, type GlossarySort, type Term } from "../model";
   import { glossary } from "./pages.svelte";
   import HighlightedText from "./HighlightedText.svelte";
   import TermDetail from "./TermDetail.svelte";
   import { glossaryAliasMatch, glossaryTermMatches } from "./glossary-flow.js";
-  import { promoteSelected, revealHead } from "./promote.js";
+  import { revealEntryHeading } from "./entry-scroll.js";
   import { CARD_CLICK_IGNORES, travelled } from "./card-click.js";
 
   let {
     allTerms,
-    patternsForTerm,
-    focusBeforeOpen,
     sort = $bindable("grouped"),
   }: {
     allTerms: () => Promise<Term[]>;
-    patternsForTerm: (id: string) => Promise<GrammarPattern[]>;
-    /** Two clicks to open a term — focus, then open — rather than one. */
-    focusBeforeOpen: boolean;
     sort?: GlossarySort;
   } = $props();
 
@@ -38,55 +30,23 @@
       ? terms
       : terms.filter((term) => glossaryTermMatches(term, needle)),
   );
-  /**
-   * **Promoted within its heading, never out of it.**
-   *
-   * Reference lifts an opened result to the very top of one flat collection. Here the headings
-   * are the page: you browse the glossary *by* category, and a term that left `PARTS OF SPEECH`
-   * to sit above `CONCEPTS` would lose the one thing on screen saying what kind of thing it is.
-   * So the lift happens inside the section — which is also the only arrangement the markup can
-   * express, since each section renders its own `<ol>`.
-   *
-   * A–Z sorting is a single section with no label, so the same rule puts the opened term at the
-   * top of the whole list there, with no special case.
-   */
-  const promote = (terms: Term[]) => promoteSelected(terms, glossary.selectedId, (term) => term.id);
   const sections = $derived.by(() => {
     if (sort === "alpha") {
       const ordered = [...matches].sort((a, b) => a.label.localeCompare(b.label));
-      return ordered.length ? [{ label: "", terms: promote(ordered) }] : [];
+      return ordered.length ? [{ label: "", terms: ordered }] : [];
     }
     return TERM_KINDS.map(({ kind, label }) => ({
       label,
-      terms: promote(matches.filter((term) => term.kind === kind)),
+      terms: matches.filter((term) => term.kind === kind),
     })).filter((section) => section.terms.length > 0);
   });
   const ordered = $derived(sections.flatMap((section) => section.terms));
-  const nextSort = $derived<GlossarySort>(sort === "grouped" ? "alpha" : "grouped");
 
   function aliasMatch(term: Term) {
     return glossaryAliasMatch(term, needle);
   }
 
-  /** The animation duration the app is set to — `Reference.svelte` reads it the same way, and why. */
-  function motionMs() {
-    const declared = getComputedStyle(document.documentElement).getPropertyValue("--anim");
-    return Number.parseFloat(declared) || 0;
-  }
-
-  /**
-   * Open or close a term, then put it where it can be read.
-   *
-   * **`tick()`, not `queueMicrotask`.** Svelte flushes its own effects in a microtask, so one
-   * queued here races it — and both the promotion above and the `firstElementChild` test below
-   * exist only after that flush.
-   *
-   * **A promoted term is scrolled to, not scrolled *at*.** `block: "nearest"` is wrong once a
-   * term can be taller than the collection: with none of it showing, the nearest edge is its
-   * *bottom*, so opening a long entry lands past the term just opened. See `traps.md`. The
-   * anchor is the whole `term-section` rather than the term, because a term at the top of its
-   * heading should arrive with that heading above it — it is half of what the term means here.
-   */
+  // Keep the selected heading visible without changing category or alphabetical order.
   async function select(id: string, toggle = true) {
     const closing = toggle && glossary.selectedId === id;
     glossary.selectedId = closing ? null : id;
@@ -94,23 +54,19 @@
     await tick();
     const item = collection?.querySelector<HTMLElement>(`[data-item="${CSS.escape(id)}"]`);
     if (!item || !collection) return;
-    const section = item.parentElement?.parentElement;
-    if (item.parentElement?.firstElementChild === item && section instanceof HTMLElement) {
-      revealHead(collection, section);
-    } else {
-      item.scrollIntoView({ block: "nearest" });
-    }
+    revealEntryHeading(collection, item.querySelector<HTMLElement>(".preview") ?? item);
+  }
+
+  async function followTerm(id: string) {
+    if (!terms.some((term) => term.id === id)) return;
+    // A relationship can leave the current name filter, but keeps the chosen browse order.
+    if (!matches.some((term) => term.id === id)) glossary.find = "";
+    await select(id, false);
+    collection?.querySelector<HTMLElement>(`[data-term="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
   }
 
   /**
-   * The card as a pointer target, in both models.
-   *
-   * **The card is the only thing a pointer can click.** Until 2026-10-17 a pull tab hung under each
-   * card and was the only pointer route in under the `hover` model. It took a row under every card
-   * and crowded the page, so it went, and its click came here: one click opens or closes under
-   * `hover`, exactly as one click on the tab did. Under `focus` nothing changed. Every click also
-   * focuses the card's hidden control, as clicking the tab used to, so the arrow keys carry on from
-   * where the pointer left off.
+   * One click toggles an entry. Hover highlights its preview without opening or loading it.
    *
    * Clicking anywhere on a term used to open it, and that was removed because it made the whole
    * card a button and left no quiet place to select a summary from. The two guards are what let
@@ -135,11 +91,7 @@
     collection
       ?.querySelector<HTMLElement>(`[data-term="${CSS.escape(id)}"]`)
       ?.focus({ preventScroll: true });
-    if (!focusBeforeOpen || rovingId === id) {
-      void select(id);
-      return;
-    }
-    rovingId = id;
+    void select(id);
   }
 
   function move(event: KeyboardEvent, index: number) {
@@ -194,12 +146,15 @@
 
 <section class="page glossary">
   <h2>Glossary</h2>
+  <label class="filter-label" for="glossary-query">Find a glossary term</label>
   <div class="controls">
     <div class="bar">
-      <input bind:value={glossary.find} placeholder="Filter — te form, transitive, keigo" aria-label="Filter the glossary" spellcheck="false" />
-      <button type="button" class="sort" onclick={() => (sort = nextSort)} aria-label={nextSort === "alpha" ? "Sort A–Z" : "Group by kind"}>
-        {nextSort === "alpha" ? "A–Z" : "Grouped"}
-      </button>
+      <input id="glossary-query" bind:value={glossary.find} placeholder="te form, transitive, keigo" aria-label="Find a glossary term" spellcheck="false" />
+      {#if glossary.find}<button type="button" aria-label="Clear glossary filter" onclick={() => { glossary.find = ""; document.getElementById("glossary-query")?.focus(); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>{/if}
+    </div>
+    <div class="sort" role="group" aria-label="Glossary order">
+      <button type="button" aria-pressed={sort === "grouped"} onclick={() => (sort = "grouped")}>Grouped</button>
+      <button type="button" aria-pressed={sort === "alpha"} onclick={() => (sort = "alpha")}>A–Z</button>
     </div>
     <span class="count">{matches.length}{needle ? ` of ${terms.length}` : ""}</span>
   </div>
@@ -209,28 +164,25 @@
   {:else if glossary.loading}
     <p class="state">Reading the glossary…</p>
   {:else if ordered.length === 0}
-    <p class="state">No term matching <strong>{glossary.find.trim()}</strong>.</p>
+    <div class="state"><p>No term name or alias matches “{glossary.find.trim()}”.</p><button type="button" class="control" onclick={() => (glossary.find = "")}>Clear filter</button></div>
   {:else}
     <nav
       class="collection"
-      data-cards={focusBeforeOpen ? "focus" : "hover"}
+      data-cards="single"
       aria-label="Glossary terms"
       bind:this={collection}
       onscroll={() => { if (collection) glossary.collectionScroll = collection.scrollTop; }}
     >
       {#each sections as section}
         <section class="term-section">
-          {#if section.label}<h3>{section.label}</h3>{/if}
+          {#if section.label}<h3>{section.label} <span class="count">{section.terms.length}</span></h3>{/if}
           <ol class="terms">
             {#each section.terms as term (term.id)}
               {@const index = ordered.indexOf(term)}
               {@const alias = aliasMatch(term)}
               {@const expanded = term.id === glossary.selectedId}
               {@const detailId = `glossary-detail-${term.id}`}
-              <!-- Keyed above, so a promotion **moves** this node rather than rebuilding it:
-                   the loaded detail and the focus survive the lift. `flip` is what makes the
-                   move legible rather than a teleport. -->
-              <li class="term" class:expanded data-item={term.id} data-focused={term.id === rovingId ? "" : undefined} animate:flip={{ duration: motionMs() }}>
+              <li class="term" class:expanded data-item={term.id} data-focused={term.id === rovingId ? "" : undefined}>
                 <!-- `.card` carries the border, the fill and the clipping; the list item carries
                      only the grid placement, and holds the card's hidden control beside it. -->
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -256,7 +208,7 @@
                 </div>
                 {#if expanded}
                   <section class="inline-detail" id={detailId} aria-label={`${term.label} detail`}>
-                    <TermDetail embedded {term} {terms} {patternsForTerm} onselect={(id) => select(id, false)} />
+                    <TermDetail embedded editorial similarTerms showSummary={false} {term} {terms} onselect={followTerm} />
                   </section>
                 {/if}
                 </div>
@@ -285,54 +237,40 @@
 </section>
 
 <style>
-  /* **Its own measure, centred.** The reading page fills the window by default (2026-10-23), and a
-     list of names with one-line summaries does not want to: at 1920px each card ran 1,814px wide for
-     a sentence of sixty characters. 64rem is the same measure Settings takes, so the two text pages
-     line up when you move between them. Narrower windows never reach it. */
-  .glossary { container: glossary / inline-size; min-height: 0; width: 100%; max-width: 64rem; margin-inline: auto; }
-  .controls { display: flex; align-items: center; gap: var(--gap); }
-  .bar { display: flex; flex: 1 1 18rem; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
-  .bar:has(input:focus), .bar:hover { background: var(--surface-sunken); }
-  input { flex: 1; min-width: 0; border: 0; outline: 0; padding: 0.45rem 0.7rem; background: none; color: var(--text); font: inherit; }
+  .glossary { container: glossary / inline-size; min-height: 0; width: 100%; --list-divider-color: color-mix(in srgb, var(--text-dim) 50%, var(--bg)); }
+  .filter-label { color: var(--text-dim); font-size: 0.85rem; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-sm); }
+  .bar { display: flex; flex: 1 1 16rem; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+  .bar:focus-within { outline: 1px solid var(--accent); outline-offset: 1px; }
+  input { flex: 1; min-width: 0; width: 0; border: 0; outline: 0; padding: 0.45rem 0.7rem; background: none; color: var(--text); font: inherit; }
   input:hover:not(:disabled), input:focus:not(:disabled) { background: none; }
   input::placeholder { color: var(--text-faint); }
-  .sort { width: 4.4rem; border: 0; border-left: 1px solid var(--border); border-radius: 0; background: none; color: var(--text-dim); font: inherit; font-size: 0.78rem; }
-  .sort:hover { color: var(--text); }
-  .count { color: var(--text-faint); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
-  .state { color: var(--text-faint); font-size: 0.85rem; }
+  .bar button { padding: 0.35rem 0.65rem; border: 0; background: none; color: var(--text-dim); font: inherit; }
+  .bar button svg { display: block; width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .sort { display: flex; gap: var(--gap-xs); }
+  .sort button { padding: 0.3rem 0.4rem; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--text-dim); font: inherit; font-size: 0.82rem; }
+  .sort button[aria-pressed="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .count { color: var(--text-faint); font-size: 0.8rem; font-weight: normal; font-variant-numeric: tabular-nums; }
+  .state { color: var(--text-dim); font-size: 0.85rem; }
   .error { color: var(--red); }
-  .collection { flex: 1; min-height: 0; padding: 0 var(--gap-sm) var(--gap-sm); overflow: auto; scrollbar-gutter: stable; }
-  .term-section h3 { margin: var(--gap) var(--gap-sm) var(--gap-xs); color: var(--accent); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
-  /* **One column, at every width.** The glossary was a Cards/Rows choice like Reference; it is a
-     list of names read top to bottom under category headings, and the grid only ever bought
-     density at the cost of a summary's measure. What is left is what the narrow case always drew.
-     The capped multi-column track went with it, and so did the reason it existed — a one-concept
-     group can no longer stretch into a disguised row, because every group is rows. */
-  .terms { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: max-content; align-items: start; gap: var(--gap-sm); }
-  /* The list item is placement only; `.card` is the card. Its other child is the card's hidden
-     control, which is out of the flow and reserves no space. */
-  .term { display: flex; flex-direction: column; min-width: 0; align-self: start; }
-  .card { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
-  .term.expanded { grid-column: 1 / -1; }
-  .term.expanded .card { border-color: var(--accent-edge); }
-  /* A `<div>` now, so the button resets and the pointer cursor that came with being one are
-     gone — as is the hover fill, which promised a click the card no longer takes. */
-  .preview { min-width: 0; padding: 0.62rem var(--gap); color: var(--text); }
+  .collection { flex: 1; min-height: 0; padding: 0 var(--gap-sm) var(--gap-sm) 0; overflow: auto; scrollbar-gutter: stable; }
+  .term-section h3 { margin: var(--gap-lg) var(--gap) var(--gap-xs); color: var(--text); font-size: 0.95rem; font-weight: 600; }
+  .term-section h3 .count { margin-left: var(--gap-xs); }
+  .terms { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: max-content; align-items: start; }
+  .term { display: flex; flex-direction: column; min-width: 0; align-self: start; border-bottom: 1px solid var(--list-divider-color); }
+  .term.expanded { background: var(--surface-raised); box-shadow: inset 2px 0 var(--accent); }
+  .card { min-width: 0; background: none; }
+  .preview { min-width: 0; padding: var(--gap) var(--gap); color: var(--text); transition: background-color var(--anim) var(--ease), box-shadow var(--anim) var(--ease); }
   .preview.current { background: var(--accent-wash); box-shadow: inset 2px 0 var(--accent); }
-  /* The lift that makes the first of two clicks mean something — quieter than `.current`, because
-     a focused term is one the reader is standing on rather than one they have opened, and both
-     can be on screen at once. Reference draws this the same way; see the note there. */
-  .collection[data-cards="focus"] .term[data-focused]:not(.expanded) .preview { background: var(--surface-hover); }
-  /* A shut card answers a click in both models — picking or opening it — so it shows the pointer
-     in both. See the matching rule in Reference. */
+  @media (hover: hover) and (pointer: fine) {
+    .term:not(.expanded) .card:hover .preview { background: var(--surface-hover); box-shadow: inset 2px 0 var(--accent-edge); }
+  }
   .term:not(.expanded) .card { cursor: pointer; }
   .preview strong, .preview span, .preview small { display: block; overflow-wrap: anywhere; }
-  .preview strong { font-size: 0.9rem; }
-  .preview span { margin-top: 0.12rem; color: var(--text-dim); font-size: 0.78rem; line-height: 1.35; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-  .preview small { margin-top: 0.2rem; color: var(--text-faint); font-size: 0.7rem; }
-  .inline-detail { min-width: 0; padding: var(--gap-lg); border-top: 1px solid var(--border); background: var(--surface-sunken); }
-
-  @container glossary (max-width: 41.999rem) {
-    .inline-detail { padding: var(--gap); }
-  }
+  .preview strong { font-size: 1rem; font-weight: 600; }
+  .term.expanded .preview strong { font-size: 1.15rem; font-weight: 700; }
+  .preview span { margin-top: 0.2rem; color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+  .preview small { margin-top: 0.2rem; color: var(--text-faint); font-size: 0.8rem; }
+  .inline-detail { min-width: 0; max-width: 65ch; padding: var(--gap) var(--gap) var(--gap-lg); }
+  .inline-detail :global(.term-detail > .detail) { color: var(--text); font-size: 0.95rem; line-height: 1.65; }
 </style>

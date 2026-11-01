@@ -78,10 +78,10 @@ class SetupStore {
     }
   }
 
-  async start() {
+  async start(downloadRepair = false) {
     this.error = "";
     try {
-      await invoke<boolean>("setup_start");
+      await invoke<boolean>("setup_start", { downloadRepair });
       await this.refresh();
     } catch (thrown) {
       this.error = String(thrown);

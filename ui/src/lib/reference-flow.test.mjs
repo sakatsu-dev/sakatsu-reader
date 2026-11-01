@@ -7,30 +7,13 @@ import test from "node:test";
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(here, "Reference.svelte"), "utf8");
 
-test("Reference is one adaptive Cards or Rows collection with inline detail", () => {
-  assert.match(source, /<LayoutChoice bind:layout flush/);
-  assert.match(source, /class="result-collection"/);
-  assert.match(source, /class:cards={layout === "cards"}/);
-  assert.match(source, /class="result" class:expanded/);
+test("Reference uses stable inline rows and retires only its layout control", () => {
+  assert.doesNotMatch(source, /LayoutChoice|promoteSelected|class:cards/);
+  assert.match(source, /const arranged = \$derived\(visible\)/);
+  assert.match(source, /{#each arranged as result, index \(result\.key\)}/);
+  assert.match(source, /const result = arranged\[next\]/);
   assert.match(source, /aria-expanded={expanded}/);
   assert.match(source, /aria-controls={detailId}/);
-  assert.doesNotMatch(source, /class="workspace"|class="result-index"|class="result-detail"/);
-});
-
-/**
- * **Promotion is unconditional, and that is the property worth pinning.**
- *
- * It was first gated on the Rows layout, which made it invisible unless you knew which layout you
- * were in — and nothing on the page says. It also made two collections that look identical (Rows,
- * and Cards below `42rem`, which is drawn as a single column) expand differently for a reason
- * nothing on screen could show. A reintroduced `layout ===` beside `promoteSelected` is exactly
- * how that comes back, so match the whole expression rather than just the call.
- */
-test("every layout promotes the open result, and the collection draws the arranged order", () => {
-  assert.match(source, /const arranged = \$derived\(promoteSelected\(visible, tab\.selectedKey, [^;]*\);/);
-  assert.match(source, /{#each arranged as result, index \(result\.key\)}/);
-  // Arrow keys resolve a position from the each block, so they must count the same list it drew.
-  assert.match(source, /const result = arranged\[next\]/);
 });
 
 test("heavy detail affordances only mount under a selected union member", () => {
@@ -44,7 +27,7 @@ test("heavy detail affordances only mount under a selected union member", () => 
   // `WordHeader` was here until the characters stopped opening one at a time. It existed to draw
   // the row of chips that chose between them, so a column that shows every character has no use
   // for it — and it had no other caller.
-  for (const component of ["WordBody", "Character", "TermDetail"]) {
+  for (const component of ["WordBody", "WordCharacters", "Character", "TermDetail"]) {
     const uses = [...source.matchAll(new RegExp(`<${component}`, "g"))].map((match) => match.index);
     assert.ok(uses.length > 0, `${component} is drawn somewhere`);
     for (const at of uses) {

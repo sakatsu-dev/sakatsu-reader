@@ -29,7 +29,17 @@
       if (!ichiran) throw new Error("Ichiran setup details are unavailable.");
     } catch (thrown) { catalogError = errorMessage(thrown); }
   }
-  onMount(() => { void loadCatalog(); });
+  let bundled = $state<boolean | null>(null);
+  let bundleError = $state("");
+  async function readBundle() {
+    bundleError = "";
+    try { bundled = await invoke<boolean>("setup_has_bundle"); }
+    catch (thrown) { bundleError = errorMessage(thrown); }
+  }
+  onMount(() => {
+    void loadCatalog();
+    void readBundle();
+  });
 
   async function chooseAnalyzer(useIchiran: boolean) {
     if (choosing || setupRunning) return;
@@ -149,7 +159,7 @@
       <div class="plain-facts">
         <div><span>What is installed</span><strong>Dictionaries + two OCR engines</strong></div>
         <div>
-          <span>Approximate download</span>
+          <span>{bundled ? "Included resources" : "Approximate download"}</span>
           <strong>{humanBytes(setup.snapshot?.storage.download_bytes ?? null)}</strong>
         </div>
         <div><span>Privacy</span><strong>Text and images stay local</strong></div>
@@ -161,10 +171,12 @@
         You can use built-in Lindera while you defer that step.
       </p>
       <p class="fine">
-        Nothing downloads until you continue. You can close Sakatsu during setup and resume later.
+        {bundled ? "The essentials are included. Setup installs them on this device without downloading." : "Nothing downloads until you continue."}
+        You can close Sakatsu during setup and resume later.
         <button class="link" onclick={() => invoke("open_notices")}>Licences and details</button>
       </p>
-      <button class="control primary" onclick={showSystemCheck}>Set up Sakatsu Reader</button>
+      {#if bundleError}<p class="note warn" role="alert">{bundleError}</p><button class="control" onclick={readBundle}>Check included resources again</button>{/if}
+      <button class="control primary" onclick={showSystemCheck} disabled={bundled === null}>Set up Sakatsu Reader</button>
     </section>
   {:else if page === "system"}
     <section class="stage">
@@ -188,9 +200,9 @@
               </small>
             </div>
           </li>
-          <li class:good={setup.preflight.network_available}>
-            <span aria-hidden="true">{setup.preflight.network_available ? "✓" : "!"}</span>
-            <div><strong>Connection</strong><small>Downloads can resume after interruptions</small></div>
+          <li class:good={bundled || setup.preflight.network_available}>
+            <span aria-hidden="true">{bundled || setup.preflight.network_available ? "✓" : "!"}</span>
+            <div><strong>{bundled ? "Local installation" : "Connection"}</strong><small>{bundled ? "Included resources do not need an internet connection" : "Downloads can resume after interruptions"}</small></div>
           </li>
           <li class:good={setup.preflight.webview2}>
             <span aria-hidden="true">✓</span>
@@ -231,7 +243,7 @@
             class="control primary"
             onclick={begin}
             disabled={Boolean(setup.preflight.blocking_issue) || setup.checking}
-          >Download and install</button>
+          >{bundled ? "Install included resources" : "Download and install"}</button>
           <button class="control" onclick={() => (page = "welcome")}>Back</button>
         </div>
       {:else}
@@ -241,7 +253,7 @@
     </section>
   {:else if page === "download"}
     <section class="stage">
-      <p class="eyebrow">DOWNLOAD AND VERIFY</p>
+      <p class="eyebrow">{bundled ? "INSTALL AND VERIFY" : "DOWNLOAD AND VERIFY"}</p>
       <h1>{interrupted ? "Your progress is safe." : "Setting up screen capture…"}</h1>
       <p class="lead">
         {#if interrupted}
@@ -293,6 +305,7 @@
           <button class="control" onclick={() => setup.pause()}>Pause</button>
         {:else}
           <button class="control primary" onclick={() => setup.start()}>Retry now</button>
+          {#if bundled || setup.snapshot?.phase === "needs_attention"}<button class="control" onclick={() => setup.start(true)}>Download repair</button>{/if}
           <button class="control" onclick={textOnly}>Use pasted text while setup finishes</button>
         {/if}
       </div>

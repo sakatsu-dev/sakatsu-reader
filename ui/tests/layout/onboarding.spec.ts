@@ -196,3 +196,17 @@ test("reviewed analyzer onboarding layouts remain visually stable", async ({ pag
   await assertContained(page);
   await expect(page).toHaveScreenshot("onboarding-analyzer.png", { animations: "disabled", maxDiffPixelRatio: 0.01 });
 });
+
+
+test("bundled setup uses local installation and keeps the fresh Analyzer step", async ({ page }) => {
+  await page.goto("/?qa=onboarding&setup=complete-after-start&bundle=yes");
+  await expect(page.getByText("Included resources", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Set up Sakatsu Reader" }).click();
+  await expect(page.getByText("Included resources do not need an internet connection")).toBeVisible();
+  await expect(page.locator(".checks li").filter({ hasText: "Local installation" })).toHaveClass(/\bgood\b/);
+  const install = page.getByRole("button", { name: "Install included resources" });
+  await install.focus();
+  await page.keyboard.press("Enter");
+  await deferAnalyzer(page);
+  await expect(page.getByRole("heading", { name: "Sakatsu Reader is ready." })).toBeVisible();
+});

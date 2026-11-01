@@ -279,6 +279,9 @@ pub struct Settings {
     /// quietly excluding every settings file written before this field from the default above.
     /// [`Settings::anki_our_decks_only`] spells the trap out; this is the same one.
     pub ichiran_server: bool,
+    /// Start Ichiran after the window opens. Missing older values inherit the enabled default.
+    /// Independent of persistence: off defers all analyzer startup work until a reading intent.
+    pub preload_ichiran_on_startup: bool,
     /// Check release metadata daily; downloading and installing always require a choice.
     pub check_updates_on_startup: bool,
     /// Write a diagnostic log file. See [`crate::log`].
@@ -994,6 +997,7 @@ impl Default for Settings {
             // On, like `quiet` above: it holds a process open, but only for someone who already
             // installed a sidecar deliberately, and it changes latency rather than answers.
             ichiran_server: true,
+            preload_ichiran_on_startup: true,
             check_updates_on_startup: true,
             log: false,
             collect_sentences: false,
@@ -3207,6 +3211,7 @@ mod tests {
                 // field survives a write and a reopen, and a field left at its default would
                 // round-trip even if `set_settings` dropped it entirely.
                 ichiran_server: false,
+                preload_ichiran_on_startup: false,
                 check_updates_on_startup: false,
                 log: true,
                 collect_sentences: true,
@@ -3286,6 +3291,7 @@ mod tests {
             .expect("save");
 
         let reopened = Store::open(scratch.path()).expect("reopen");
+        assert!(!reopened.settings().preload_ichiran_on_startup);
         assert!(!reopened.settings().furigana);
         assert!(reopened.settings().keep_line_breaks);
         assert_eq!(reopened.settings().passage_align, PassageAlign::Center);
@@ -3901,6 +3907,32 @@ mod tests {
         assert_eq!(
             store.statuses(&[WordKey::for_token(&analysed), WordKey::new("未知", "みち"),]),
             vec![WordStatus::Known, WordStatus::default()],
+        );
+    }
+}
+
+#[cfg(test)]
+mod startup_preload_tests {
+    use super::Settings;
+
+    #[test]
+    fn missing_startup_preload_inherits_the_enabled_default() {
+        let old: Settings = serde_json::from_str("{}").unwrap();
+        assert!(old.preload_ichiran_on_startup);
+        assert!(Settings::default().preload_ichiran_on_startup);
+    }
+
+    #[test]
+    fn an_explicitly_disabled_preload_survives_serialization() {
+        let settings: Settings =
+            serde_json::from_str(r#"{"preload_ichiran_on_startup":false}"#).unwrap();
+        assert!(!settings.preload_ichiran_on_startup);
+        let restored: Settings =
+            serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
+        assert!(!restored.preload_ichiran_on_startup);
+        assert!(
+            restored.ichiran_server,
+            "preload and persistence are separate choices"
         );
     }
 }

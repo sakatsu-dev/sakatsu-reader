@@ -66,6 +66,14 @@ pub struct DictionaryMeta {
     pub title: String,
     #[serde(default)]
     pub revision: String,
+    #[serde(default, rename = "isUpdatable")]
+    pub is_updatable: bool,
+    #[serde(default, rename = "indexUrl")]
+    pub index_url: Option<String>,
+    #[serde(default, rename = "downloadUrl")]
+    pub download_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_sha256: Option<String>,
     /// Yomitan's format generation. Older dictionaries call this `version`.
     #[serde(default, alias = "version")]
     pub format: u32,
@@ -1656,6 +1664,9 @@ impl Dictionary {
             index.read_to_string(&mut json)?;
             serde_json::from_str(&json)?
         };
+
+        meta.source_sha256 =
+            Some(super::managed::sha256(archive_path).map_err(DictError::BadFormat)?);
 
         // Sort the banks by their number so an import is reproducible: entry order
         // decides the order of equal-scoring results.

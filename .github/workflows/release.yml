@@ -71,6 +71,15 @@ jobs:
           rustup override set 1.99.0
           cargo install tauri-cli --version 2.10.1 --locked
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Cache pinned essentials
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/essentials
+          key: essentials-v1-${{ hashFiles('scripts/offline-essentials-catalog.json') }}
+      - name: Prepare verified bundled essentials
+        run: |
+          python scripts/prepare-essentials.py --fetch-missing
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Build application and release verifier
         run: |
           npm --prefix ui ci

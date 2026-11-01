@@ -35,6 +35,9 @@ export class Tab {
   asked = $state("");
   searching = $state(false);
   error = $state("");
+  /** In-flight and failed questions stay separate from the successful answer. */
+  requested = $state("");
+  failedQuery = $state("");
 
   words = $state<WordHit[]>([]);
   patterns = $state<GrammarPattern[]>([]);
@@ -45,6 +48,8 @@ export class Tab {
   /** Presentation state belongs to the tab just as its answer does. */
   facet = $state<"all" | "words" | "grammar" | "kanji" | "terms">("all");
   wordKinds = $state<string[]>([]);
+  filtersOpen = $state(false);
+  character = $state<string | null>(null);
   /** The sole inline detail currently mounted; `null` leaves the collection collapsed. */
   selectedKey = $state<string | null>(null);
   collectionScroll = $state(0);
@@ -116,6 +121,13 @@ export class Tab {
 
   /** Back to an empty tab, keeping whatever is in the box. */
   reset() {
+    // Invalidate replies before clearing the view, including an initial search.
+    this.generation += 1;
+    this.searching = false;
+    this.requested = "";
+    this.failedQuery = "";
+    this.filtersOpen = false;
+    this.character = null;
     this.asked = "";
     this.words = [];
     this.patterns = [];

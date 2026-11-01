@@ -90,31 +90,3 @@ test("the binding is quoted as given", () => {
   const bound = captureHint({ ...state, binding: "Ctrl+Shift+Q" });
   assert.deepEqual(bound.faces, ["Ctrl+Shift+Q reads", "PaddleOCR-VL"]);
 });
-
-test("the capture behind the passage adds its provenance to the engine's face", () => {
-  const base = { capturing: false, ready: true, engine: "Auto", binding: "Middle click" };
-  assert.deepEqual(
-    captureHint({ ...base, cycling: true, provenance: "read by manga-ocr" }).faces,
-    ["Middle click reads", "Auto, read by manga-ocr"],
-  );
-  assert.equal(
-    captureHint({ ...base, cycling: false, provenance: "read by manga-ocr" }).text,
-    "Middle click reads · Auto, read by manga-ocr",
-  );
-  assert.deepEqual(captureHint({ ...base, cycling: true, provenance: null }).faces, [
-    "Middle click reads",
-    "Auto",
-  ]);
-});
-
-test("a capture in flight says nothing about the last one", () => {
-  const hint = captureHint({
-    capturing: true,
-    ready: true,
-    engine: "Auto",
-    binding: "Middle click",
-    cycling: true,
-    provenance: "read by manga-ocr",
-  });
-  assert.equal(hint.text, "Reading…");
-});

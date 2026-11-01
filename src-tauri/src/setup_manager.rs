@@ -166,12 +166,28 @@ pub fn setup_snapshot(
 }
 
 #[tauri::command(async)]
-pub fn setup_preflight(
+pub fn setup_preflight<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
     setup: State<'_, SetupState>,
     analyzer: State<'_, AnalyzerState>,
 ) -> SetupPreflight {
     let snapshot = build_snapshot(&setup, &analyzer);
-    preflight(&snapshot.storage)
+    preflight(&snapshot.storage, bundled_path(&app).is_none())
+}
+
+fn bundled_path<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<PathBuf> {
+    use tauri::Manager;
+    let path = app
+        .path()
+        .resource_dir()
+        .ok()?
+        .join("essentials/essentials.zip");
+    path.is_file().then_some(path)
+}
+
+#[tauri::command]
+pub fn setup_has_bundle<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> bool {
+    bundled_path(&app).is_some()
 }
 
 /// Only an explicit analyzer choice dismisses this step. Completion is persisted before the
@@ -191,7 +207,17 @@ pub fn setup_start<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     setup: State<'_, SetupState>,
     analyzer: State<'_, AnalyzerState>,
+    download_repair: Option<bool>,
 ) -> bool {
+    if !download_repair.unwrap_or(false) {
+        if let Some(package) = bundled_path(&app) {
+            return setup_import_offline(app, setup, analyzer, package.display().to_string());
+        }
+        if !cfg!(debug_assertions) {
+            fail(&setup, &app, "The included resources package is missing. Reinstall Sakatsu or choose Download repair.");
+            return false;
+        }
+    }
     let Ok(lifecycle) = crate::lifecycle::gates().enter(crate::lifecycle::Gate::Publication) else {
         return false;
     };
@@ -199,7 +225,7 @@ pub fn setup_start<R: tauri::Runtime>(
         return false;
     }
     let snapshot = build_snapshot(&setup, &analyzer);
-    let check = preflight(&snapshot.storage);
+    let check = preflight(&snapshot.storage, true);
     if let Some(issue) = check.blocking_issue {
         setup.update(|state| {
             state.phase = SetupPhase::NeedsAttention;
@@ -466,6 +492,11 @@ pub fn setup_import_offline<R: tauri::Runtime>(
     analyzer: State<'_, AnalyzerState>,
     package_path: String,
 ) -> bool {
+    let snapshot = build_snapshot(&setup, &analyzer);
+    if let Some(issue) = preflight(&snapshot.storage, false).blocking_issue {
+        fail(&setup, &app, &issue);
+        return false;
+    }
     let Ok(lifecycle) = crate::lifecycle::gates().enter(crate::lifecycle::Gate::Publication) else {
         return false;
     };
@@ -829,6 +860,19 @@ fn import_offline<R: tauri::Runtime>(
         let mut dictionaries = Vec::new();
         let mut installed = Vec::new();
         for component in required {
+            use tauri::Manager;
+            let dictionary =
+                component.after == sakatsu_core::setup::catalog::After::ImportDictionary;
+            let missing_kanji_parts = component.id == "kanji"
+                && (!crate::kanji_dir().join("krad.tsv").is_file()
+                    || !crate::kanji_dir().join("kanjivg").is_dir());
+            if !dictionary
+                && !missing_kanji_parts
+                && commands::installed(component.id, &app.state::<AnalyzerState>())
+            {
+                installed.push(component.id.to_string());
+                continue;
+            }
             setup.update(|state| state.current_component = Some(component.id.into()));
             emit_changed(app);
             let live = commands::destination(component.id)
@@ -840,7 +884,7 @@ fn import_offline<R: tauri::Runtime>(
                 setup.update(|state| state.phase = SetupPhase::Installing);
                 emit_changed(app);
                 let mut hooks = OfflineHooks { app };
-                let (generations, _) = sakatsu_core::setup::install::prepare_dictionaries(
+                let (generations, _) = sakatsu_core::setup::install::prepare_missing_dictionaries(
                     &mut hooks,
                     component,
                     &live,
@@ -874,6 +918,21 @@ fn import_offline<R: tauri::Runtime>(
                 &setup.pause,
                 Some(&mut report_phase),
             )?;
+            // Filling absent diagrams must not reinstate the bundled KANJIDIC table.
+            if component.id == "kanji" && live.join("kanjidic.tsv").is_file() {
+                std::fs::copy(live.join("kanjidic.tsv"), destination.join("kanjidic.tsv"))
+                    .map_err(|error| error.to_string())?;
+                if live.join("kanjidic-source.json").is_file() {
+                    std::fs::copy(
+                        live.join("kanjidic-source.json"),
+                        destination.join("kanjidic-source.json"),
+                    )
+                    .map_err(|e| e.to_string())?;
+                } else if destination.join("kanjidic-source.json").exists() {
+                    std::fs::remove_file(destination.join("kanjidic-source.json"))
+                        .map_err(|e| e.to_string())?;
+                }
+            }
             prepared.push((component.id.to_string(), destination, live));
         }
         sakatsu_core::setup::publication::publish_offline(&root, &prepared, dictionaries)?;
@@ -1101,15 +1160,16 @@ fn storage_summary(components: &[SetupComponentState]) -> StorageSummary {
     }
 }
 
-fn preflight(storage: &StorageSummary) -> SetupPreflight {
+fn preflight(storage: &StorageSummary, needs_network: bool) -> SetupPreflight {
     let target = PathBuf::from(&storage.target);
     let writable = ensure_writable(&target).is_ok();
     let enough_space = storage
         .available_bytes
         .is_some_and(|available| available >= storage.peak_bytes);
-    let network_available = ("github.com", 443)
-        .to_socket_addrs()
-        .is_ok_and(|mut addresses| addresses.next().is_some());
+    let network_available = needs_network
+        && ("github.com", 443)
+            .to_socket_addrs()
+            .is_ok_and(|mut addresses| addresses.next().is_some());
     let supported_windows = cfg!(windows);
     let supported_architecture = cfg!(target_arch = "x86_64");
     let blocking_issue = if !supported_windows || !supported_architecture {
@@ -1121,7 +1181,7 @@ fn preflight(storage: &StorageSummary) -> SetupPreflight {
             "Setup needs {} free including its safety reserve. Choose another storage location.",
             human_size(storage.peak_bytes)
         ))
-    } else if !network_available {
+    } else if needs_network && !network_available {
         Some(
             "No network connection is available. Reconnect or install from an essentials package."
                 .into(),

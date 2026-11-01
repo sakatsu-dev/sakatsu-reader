@@ -2,8 +2,6 @@ import { mount } from "svelte";
 // Design tokens and base styles. Imported once here so both the main window and the
 // capture frame get them — components reference the tokens and never raw colours.
 import "./theme.css";
-import App from "./App.svelte";
-import Frame from "./lib/Frame.svelte";
 import { applyStoredTheme } from "./lib/theme-live";
 
 // The capture frame runs in its own transparent window, but out of the same bundle:
@@ -42,7 +40,11 @@ async function start() {
   } catch {
     // The stylesheet already says dark.
   }
-  mount(isFrame ? Frame : App, {
+  // App stores subscribe during module initialization, so install browser IPC first.
+  const { default: Component } = isFrame
+    ? await import("./lib/Frame.svelte")
+    : await import("./App.svelte");
+  mount(Component, {
     target: document.getElementById("app")!,
   });
 }

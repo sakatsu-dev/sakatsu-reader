@@ -14,6 +14,18 @@
  * that, which is why `model.contract.ts` has to widen those same unions back to `string`.
  */
 
+export type ResourceKind = "words" | "kanjidic";
+
+export type ImportPreview = { id: string, kind: ResourceKind, title: string, revision: string, sha256: string, source: string | null, };
+
+export type DictionaryPreferences = { check_updates: boolean, automatic: boolean, };
+
+export type ManagedDictionary = { id: string, kind: ResourceKind, title: string, revision: string, generation: string, source: string | null, home: string | null, entries: number | null, sha256: string | null, consented: boolean, phase: string, detail: string, available_revision: string | null, };
+
+export type DictionaryOperation = { id: string, target: string, phase: string, detail: string, bytes: number, };
+
+export type DictionaryManagerSnapshot = { preferences: DictionaryPreferences, dictionaries: Array<ManagedDictionary>, operation: DictionaryOperation | null, };
+
 export type UpdatePhase = "not_configured" | "idle" | "checking" | "current" | "available" | "downloading" | "ready" | "installing" | "failed" | "offline";
 
 export type UpdateStatus = { generation: number, phase: UpdatePhase, version: string | null, notes: string, downloaded: number, total: number | null, error: string | null, };

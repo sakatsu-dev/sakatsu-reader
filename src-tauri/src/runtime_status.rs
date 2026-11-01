@@ -105,6 +105,20 @@ pub fn analysis_result(
 pub fn analysis_engine(analyzer: &AnalyzerState) -> EngineStatus {
     let route = analyzer.route();
     let primary = route.primary.engine().to_string();
+    let state = match route.readiness {
+        Readiness::Probing => EngineState::Loading,
+        Readiness::Deferred => match sakatsu_core::analyzer::ichiran::server::session_ready() {
+            Some(true) => EngineState::Ready,
+            Some(false) => EngineState::NotLoaded,
+            None => EngineState::Loading,
+        },
+        Readiness::Ready | Readiness::Unavailable { .. } => EngineState::Ready,
+    };
+    let loaded = if matches!(route.readiness, Readiness::Deferred) && state != EngineState::Ready {
+        None
+    } else {
+        Some(primary.clone())
+    };
     EngineStatus {
         role: EngineRole::Analysis,
         configured: match route.policy {
@@ -119,11 +133,8 @@ pub fn analysis_engine(analyzer: &AnalyzerState) -> EngineStatus {
             Hosting::InProcess
         },
         // The engine standing in is ready even while Ichiran is still being checked.
-        state: match route.readiness {
-            Readiness::Probing => EngineState::Loading,
-            Readiness::Ready | Readiness::Unavailable { .. } => EngineState::Ready,
-        },
-        loaded: Some(primary),
+        state,
+        loaded,
         acceleration: Acceleration::Cpu,
     }
 }

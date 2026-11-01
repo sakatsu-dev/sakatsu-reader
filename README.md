@@ -218,3 +218,10 @@ is GPL-3.0, and contains none of its source.
 The dictionaries and models it downloads are not part of this repository. Each keeps its own
 licence and attribution terms, set out in [LICENSING.md](./LICENSING.md). The licence texts of the
 libraries compiled into the app are in [THIRD-PARTY-NOTICES.txt](./src-tauri/THIRD-PARTY-NOTICES.txt).
+
+### Included resources and dictionary updates
+
+The installer includes the tested dictionaries, kanji resources and essential OCR models.
+Setup installs these locally; Ichiran and optional features have separate setup steps.
+Use **Settings > Search > Dictionaries** to check for updates or import a downloaded dictionary.
+Updates ask before downloading by default. Automatic dictionary updates are optional.

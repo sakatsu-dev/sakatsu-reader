@@ -110,6 +110,8 @@ windows = { version = "0.62", features = [
 [features]
 default = ["developer-tools"]
 developer-tools = []
+# Explicit, debug-only HTTP fixtures for production publisher IPC tests. Never used by a release.
+dictionary-publisher-tests = []
 
 [[bin]]
 name = "checkpoint-fixture"

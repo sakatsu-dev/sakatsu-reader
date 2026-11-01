@@ -33,12 +33,9 @@
  * @param {string} state.engine The engine's display name, already through `engineLabel`.
  * @param {string} state.binding How the capture binding reads, e.g. "Middle click".
  * @param {boolean} state.cycling Whether the interface is allowed to animate.
- * @param {string | null} [state.provenance] What the capture behind the passage on screen adds to
- *   the engine's name — which model Auto picked, verified GPU layers — from `runtime-status.js`.
- *   `null` when it adds nothing, or when the passage did not come from a capture.
  * @returns {Hint}
  */
-export function captureHint({ capturing, ready, engine, binding, cycling, provenance = null }) {
+export function captureHint({ capturing, ready, engine, binding, cycling }) {
   const named = Boolean(engine) && engine !== "no model installed";
 
   if (capturing && !ready) {
@@ -62,14 +59,12 @@ export function captureHint({ capturing, ready, engine, binding, cycling, proven
     return { phase: "idle", spinner: false, text: hint, faces: [] };
   }
 
-  // The engine's face carries the provenance, so it alternates with the binding like the name.
-  const face = provenance ? `${engine}, ${provenance}` : engine;
   return {
     phase: "idle",
     spinner: false,
     // The still form joins what the cycle would have alternated, so turning animation off
     // loses the motion and not the information.
-    text: cycling ? hint : `${hint} · ${face}`,
-    faces: cycling ? [hint, face] : [],
+    text: cycling ? hint : `${hint} · ${engine}`,
+    faces: cycling ? [hint, engine] : [],
   };
 }

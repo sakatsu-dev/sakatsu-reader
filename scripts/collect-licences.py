@@ -150,6 +150,11 @@ def npm_packages():
     for name in ("svelte",):
         if name not in wanted:
             wanted.append(name)
+    # motion/mini re-exports framer-motion/dom/mini, which uses these two shared runtimes.
+    # Their authorship differs, so the wrapper's licence alone is insufficient.
+    if "motion" in wanted:
+        wanted.extend(name for name in ("framer-motion", "motion-dom", "motion-utils")
+                      if name not in wanted)
 
     out = []
     for name in wanted:

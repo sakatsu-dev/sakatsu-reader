@@ -36,10 +36,8 @@ test("components disclose their meaning and related characters use current-tab l
   assert.match(character, /invoke<RelatedKanjiResult>\("kanji_related"/);
   assert.match(character, /limit: 24/);
   assert.match(character, /onclick=\{\(\) => onlookup\(item\.character\)\}/);
-  // The lookup has to reach every character in the stack, not just the first: each panel offers
-  // related kanji, and a press on one of those is how a reader walks from 貴 to 遺 without
-  // typing. Reference is the only caller now — `WordHeader`, which used to place a single panel,
-  // went with the chips that chose which one.
-  assert.match(reference, /\{#each word\.chars as character \(character\.character\)\}/);
-  assert.match(reference, /<Character \{character\} onlookup=\{ask\} \/>/);
+  const choices = readFileSync(new URL("./WordCharacters.svelte", import.meta.url), "utf8");
+  assert.match(reference, /<WordCharacters characters={word\.chars}/);
+  assert.match(choices, /{#each characters as character/);
+  assert.match(choices, /<Character character={active} {onlookup} editorial/);
 });

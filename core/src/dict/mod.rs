@@ -16,6 +16,7 @@ pub mod frequency;
 pub mod index;
 pub mod kanji;
 pub mod kanjivg;
+pub mod managed;
 pub mod merge;
 pub mod names;
 pub mod readings;

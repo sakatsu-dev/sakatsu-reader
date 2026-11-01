@@ -1,6 +1,5 @@
 /**
- * What the reader is told about the engines: the phrase beside the capture hint, and the rows in
- * Settings → Diagnostics.
+ * What the reader is told about the engines: the rows in Settings → Diagnostics.
  *
  * # Only what was reported
  *
@@ -10,36 +9,13 @@
  * offloaded is said as "GPU acceleration active (N/M layers)", not "runs on the GPU", because
  * the layer count is what llama.cpp reported and the rest of the pipeline is not covered by it.
  *
- * # Only for the request it belongs to
- *
- * A status slot holds the latest *published* result, and the reader may have moved on since.
- * {@link sameRequest} is how the interface checks that a result answers the request it owns
- * before showing it.
- *
- * Its own module because `App.svelte` and `Settings.svelte` use runes and `node --test` cannot
- * import them.
+ * Its own module because `Settings.svelte` uses runes and `node --test` cannot import it.
  */
 
 /** @typedef {import("../model").Acceleration} Acceleration */
 /** @typedef {import("../model").EngineStatus} EngineStatus */
 /** @typedef {import("../model").OperationResult} OperationResult */
-/** @typedef {import("../model").RequestIdentity} RequestIdentity */
 /** @typedef {(engine: string) => string} Label */
-
-/**
- * Whether two request identities name the same request.
- *
- * @param {RequestIdentity | null | undefined} left
- * @param {RequestIdentity | null | undefined} right
- */
-export function sameRequest(left, right) {
-  return (
-    Boolean(left && right) &&
-    left?.owner === right?.owner &&
-    left?.operation === right?.operation &&
-    left?.generation === right?.generation
-  );
-}
 
 /**
  * The device, as reported. Empty when nothing was reported.
@@ -55,27 +31,6 @@ export function accelerationPhrase(acceleration) {
     default:
       return "";
   }
-}
-
-/**
- * The short phrase beside the capture hint for the recognition that produced the passage on
- * screen, or `null` when there is nothing worth adding to the engine's name.
- *
- * Two things are worth adding: which model Auto handed the image to, and verified GPU
- * acceleration. A processor-only read adds nothing to a hint about how to capture; it is in
- * Settings → Diagnostics for whoever asks.
- *
- * @param {OperationResult | null | undefined} result
- * @param {string} configured The engine the settings ask for, as the backend names it.
- * @param {Label} label
- */
-export function recognitionPhrase(result, configured, label) {
-  if (!result || result.outcome.kind !== "succeeded" || !result.engine) return null;
-  const parts = [];
-  if (result.engine !== configured) parts.push(`read by ${label(result.engine)}`);
-  if (result.acceleration.kind === "gpu_layers")
-    parts.push(accelerationPhrase(result.acceleration));
-  return parts.length > 0 ? parts.join(", ") : null;
 }
 
 const HOSTING = {

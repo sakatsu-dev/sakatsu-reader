@@ -4,9 +4,7 @@ import {
   accelerationPhrase,
   engineRow,
   isLoopback,
-  recognitionPhrase,
   resultPhrase,
-  sameRequest,
   statusLabel,
 } from "./runtime-status.js";
 
@@ -31,15 +29,6 @@ function result(overrides = {}) {
   };
 }
 
-test("a result belongs to a request only when all three identifiers agree", () => {
-  assert.equal(sameRequest(request, { ...request }), true);
-  assert.equal(sameRequest(request, { ...request, generation: 4 }), false);
-  assert.equal(sameRequest(request, { ...request, operation: "study" }), false);
-  assert.equal(sameRequest(request, { ...request, owner: "other" }), false);
-  assert.equal(sameRequest(request, null), false);
-  assert.equal(sameRequest(null, null), false, "two missing identities are not a match");
-});
-
 test("acceleration is said only as reported, and never guessed", () => {
   assert.equal(accelerationPhrase({ kind: "cpu" }), "CPU");
   assert.equal(
@@ -49,32 +38,6 @@ test("acceleration is said only as reported, and never guessed", () => {
   assert.equal(accelerationPhrase({ kind: "unknown" }), "");
   assert.equal(accelerationPhrase({ kind: "not_running" }), "");
   assert.equal(accelerationPhrase(undefined), "");
-});
-
-test("the hint names the model Auto picked", () => {
-  assert.equal(recognitionPhrase(result(), "auto", label), "read by manga-ocr");
-});
-
-test("the hint adds nothing for a processor-only read of the engine asked for", () => {
-  assert.equal(recognitionPhrase(result({ engine: "pp-ocrv6" }), "pp-ocrv6", label), null);
-});
-
-test("verified GPU layers are worth saying; an unknown device is not", () => {
-  const gpu = { kind: "gpu_layers", offloaded: 12, total: 29, device: "Vulkan0 (GPU)" };
-  assert.equal(
-    recognitionPhrase(result({ engine: "vlm", acceleration: gpu }), "vlm", label),
-    "GPU acceleration active (12/29 layers)",
-  );
-  assert.equal(
-    recognitionPhrase(result({ engine: "vlm", acceleration: { kind: "unknown" } }), "vlm", label),
-    null,
-  );
-});
-
-test("a failed recognition adds no provenance at all", () => {
-  const failed = result({ engine: "", outcome: { kind: "failed", code: "engine_failed" } });
-  assert.equal(recognitionPhrase(failed, "auto", label), null);
-  assert.equal(recognitionPhrase(null, "auto", label), null);
 });
 
 test("an engine row says what is asked for, what is loaded, where and on what", () => {

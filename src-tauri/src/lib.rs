@@ -18,6 +18,7 @@ pub mod capture;
 pub mod checkpoint;
 pub mod clipboard;
 pub mod commands;
+pub mod dictionary_manager;
 #[cfg(debug_assertions)]
 pub mod fault;
 pub mod lifecycle;
@@ -60,6 +61,7 @@ pub fn run() {
     let settings = store.settings();
     // Copied out because `setup` runs after the builder has finished with `settings`.
     let preferred_analyzer = settings.analyzer;
+    let preload_ichiran = settings.preload_ichiran_on_startup;
     let built_in = built_in_analyzer();
     apply_logging(&settings, "starting");
     // Before `choose_analyzer`, which loads whatever was kept the moment it is built.
@@ -188,12 +190,13 @@ pub fn run() {
         .manage(analyzer_to_open_with(
             preferred_analyzer,
             built_in.0.clone(),
+            preload_ichiran,
         ))
         .manage(built_in)
         .manage(dictionaries)
         .manage(store)
-        // Conventional OCR stays lazy; a remembered PaddleOCR-VL selection is warmed after the
-        // window appears in `.setup()` below. If a required resource is absent, the stub says so
+        // The selected OCR is warmed after the window appears in `.setup()` below.
+        // If a required resource is absent, the stub says so
         // rather than failing silently.
         .manage(OcrState::new(model_dir(), paddle_model_dir(), &settings))
         .manage(AudioState::default())
@@ -209,11 +212,13 @@ pub fn run() {
         .manage(frequencies)
         .manage(commands::FetchState::default())
         .manage(setup_manager::SetupState::load())
+        .manage(dictionary_manager::DictionaryManagerState::default())
         .manage(warmup::WarmupState::default())
         // Also lazy: ~300 MB, and only used when the learner opens the disclosure.
         .manage(TranslatorState::new(translation_model_dir()))
         .setup(move |app| {
             update::initialize(app.handle())?;
+            dictionary_manager::start(app.handle().clone());
             apply_saved_settings(app.handle());
             // **Only the accepted instance reaches setup, and that is why recovery lives here.**
             //
@@ -273,12 +278,14 @@ pub fn run() {
             }
             // Now that there is something on screen, go and find out whether the analyzer the
             // reader actually asked for is available.
-            upgrade_analyzer_in_the_background(app.handle().clone(), preferred_analyzer);
-            // Likewise for the reader whose remembered engine is PaddleOCR-VL: a choice made in
-            // a previous session is still a choice, and without this the first capture of every
-            // session pays the twenty seconds again. Also after the window is up — the point is
-            // to spend the wait somewhere nobody is watching, which is not true before it.
-            commands::warm_ocr_in_the_background(app.handle().clone());
+            upgrade_analyzer_in_the_background(
+                app.handle().clone(),
+                preferred_analyzer,
+                preload_ichiran,
+            );
+            // The intro observes this background load. Claiming it before spawning also makes
+            // the first status read distinguish queued initialization from a deferred engine.
+            commands::warm_ocr_on_startup(app.handle().clone());
             // After the window exists, because it needs the HWND. This is what keeps the
             // snap-layout flyout working now that the window draws its own caption — see
             // `titlebar.rs` for why one integer from a child window is the whole mechanism.
@@ -349,6 +356,15 @@ macro_rules! reader_commands {
             $crate::commands::kanji_compounds,
             $crate::commands::gloss_index_ready,
             $crate::commands::dictionary_upkeep,
+            $crate::dictionary_manager::dictionary_manager,
+            $crate::dictionary_manager::dictionary_preferences,
+            $crate::dictionary_manager::dictionary_source_consent,
+            $crate::dictionary_manager::dictionary_preview,
+            $crate::dictionary_manager::dictionary_import,
+            $crate::dictionary_manager::dictionary_check,
+            $crate::dictionary_manager::dictionary_update,
+            $crate::dictionary_manager::dictionary_cancel,
+            $crate::dictionary_manager::dictionary_open_source,
             $crate::commands::build_gloss_index,
             $crate::commands::particle_senses,
             $crate::commands::expression_offer,
@@ -430,6 +446,7 @@ macro_rules! reader_commands {
             $crate::setup_manager::setup_snapshot,
             $crate::setup_manager::setup_preflight,
             $crate::setup_manager::setup_start,
+            $crate::setup_manager::setup_has_bundle,
             $crate::setup_manager::setup_pause,
             $crate::setup_manager::setup_use_text_only,
             $crate::setup_manager::setup_finish_analyzer,
@@ -512,12 +529,15 @@ fn words_kept_at(store: &StoreState) {
 /// **There is no window yet when this is called.** Every `.manage` argument is evaluated before
 /// `run()` creates one, so work here is time the app spends with nothing on screen — and probing
 /// Ichiran is a `wsl -e ichiran-cli` spawn loading a large Lisp image. Measured from a reader's own
-/// log, three launches: 6.2s, 6.7s, 8.7s. So the app opens on the built-in analyzer, **recorded as
-/// standing in while Ichiran is checked**, and `upgrade_analyzer_in_the_background` probes once the
-/// window is up.
-fn analyzer_to_open_with(
+/// log, three launches: 6.2s, 6.7s, 8.7s. With preloading enabled, the app opens on the built-in
+/// analyzer, recorded as standing in until the background session is prepared. With it disabled,
+/// the configured Ichiran route starts on the first reading request instead. Neither branch
+/// starts a process here.
+#[doc(hidden)]
+pub fn analyzer_to_open_with(
     saved: AnalyzerChoice,
     built_in: std::sync::Arc<dyn Analyzer>,
+    preload: bool,
 ) -> AnalyzerState {
     let policy = route::effective_policy(saved);
     #[cfg(debug_assertions)]
@@ -525,6 +545,15 @@ fn analyzer_to_open_with(
         if policy != AnalyzerPolicy::BuiltIn {
             return AnalyzerState::new(fault::route(policy, built_in, mode));
         }
+    }
+    if policy != AnalyzerPolicy::BuiltIn && !preload {
+        return AnalyzerState::new(Route {
+            policy,
+            primary: std::sync::Arc::new(Remembering::new(configured_ichiran())),
+            fallback: Some(built_in),
+            readiness: Readiness::Deferred,
+            generation: 0,
+        });
     }
     AnalyzerState::new(Route {
         policy,
@@ -589,18 +618,21 @@ pub fn built_in_analyzer() -> commands::BuiltInAnalyzerState {
 /// Comparing engine names could not see a selection of the same engine, or a choice and a change
 /// back. A probe that finds Ichiran unavailable publishes that too, so the passages that follow
 /// record why the built-in analyzer is standing in.
-fn upgrade_analyzer_in_the_background<R: tauri::Runtime>(
+#[doc(hidden)]
+pub fn upgrade_analyzer_in_the_background<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     saved: AnalyzerChoice,
-) {
-    if route::effective_policy(saved) == AnalyzerPolicy::BuiltIn {
-        return;
+    enabled: bool,
+) -> bool {
+    if !enabled || route::effective_policy(saved) == AnalyzerPolicy::BuiltIn {
+        return false;
     }
     #[cfg(debug_assertions)]
     if fault::mode().is_some() {
-        return;
+        return false;
     }
     std::thread::spawn(move || probe_and_publish(&app));
+    true
 }
 
 /// Probe the preferred analyzer again if the route says it is due, at most one probe at a time.
@@ -644,21 +676,29 @@ pub fn probe_and_publish<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         return;
     };
     let started = state.route();
-    let Some(found) = probe_route_with(started.policy, built_in.0.clone(), |ichiran| {
-        let result = ichiran.check_available(probe.cancellation());
-        if probe
-            .cancellation()
-            .load(std::sync::atomic::Ordering::Acquire)
-        {
-            None
-        } else {
-            Some(result.map(|_| ()))
+    let mut preloaded = None;
+    let Some(found) = probe_route_with(started.policy, built_in.0.clone(), |ichiran| match ichiran
+        .prepare_for_startup(probe.cancellation())
+    {
+        Ok(Some(prepared)) => {
+            preloaded = Some(prepared);
+            Some(Ok(()))
         }
+        Ok(None) => None,
+        Err(error) => Some(Err(error)),
     }) else {
         return;
     };
     let engine = found.primary.engine().to_string();
-    let Some(published) = probe.publish(|| state.publish_if(started.generation, found)) else {
+    let Some(published) = probe.publish(|| {
+        let published = state.publish_if(started.generation, found);
+        if published {
+            if let Some(prepared) = preloaded.take() {
+                prepared.commit();
+            }
+        }
+        published
+    }) else {
         return;
     };
     if !published {
@@ -831,8 +871,7 @@ fn apply_saved_settings<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     commands::set_always_on_top(app, saved.always_on_top);
     sakatsu_core::analyzer::ichiran::set_quiet(saved.quiet);
     apply_collecting(&saved);
-    // The session itself is started lazily by the first analysis that wants it, so this only
-    // records the intent — opening the app with it on costs nothing until something is read.
+    // Record persistence here; optional preload starts only after the window is shown.
     sakatsu_core::analyzer::ichiran::server::set_persistent(saved.ichiran_server);
 
     // **Opening the reader starts no model service.** This used to warm the vision model here,

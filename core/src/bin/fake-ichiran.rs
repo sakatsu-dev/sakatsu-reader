@@ -36,6 +36,14 @@ const KIMOCHI: &str = include_str!("../../tests/fixtures/ichiran/kimochi.json");
 
 /// The answer for this passage, on one line.
 fn answer_for(passage: &str) -> String {
+    if passage.trim() == "\u{6c34}" {
+        let mut answer: serde_json::Value = serde_json::from_str(ANSWER).expect("fixture JSON");
+        answer[0][0][0]
+            .as_array_mut()
+            .expect("fixture tokens")
+            .truncate(1);
+        return serde_json::to_string(&answer).expect("fixture JSON");
+    }
     let json = if passage.trim() == "気持ち" {
         KIMOCHI
     } else {

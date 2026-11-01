@@ -41,35 +41,26 @@ test("Settings no longer offers a column width", async ({ page }) => {
  * spread across a full-width page, their cards ran 1,814px and 1,624px wide at 1920px, with each
  * label a screen away from its control. Each stops at 64rem, centred in the page.
  */
-for (const view of ["Glossary", "Settings"] as const) {
+for (const view of ["Settings"] as const) {
   test(`${view} keeps a 64rem measure, centred, in a wide window`, async ({ page }, info) => {
     test.skip(
       info.project.name !== "edge-900-100",
       "window sizes are set here, not by the project",
     );
     await page.setViewportSize({ width: 1920, height: 1080 });
-    if (view === "Glossary") {
-      await page.goto("/?qa=reference&fixture=glossary");
-      await page.getByRole("button", { name: "Glossary" }).click();
-      await expect(page.getByRole("navigation", { name: "Glossary terms" })).toBeVisible();
-    } else {
-      await page.goto("/?qa=analysis");
-      await openSettings(page);
-    }
-    const geometry = await page.evaluate(
-      (selector) => {
-        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-        const main = document.querySelector("main")!.getBoundingClientRect();
-        const box = document.querySelector(selector)!.getBoundingClientRect();
-        const padding = parseFloat(getComputedStyle(document.querySelector("main")!).paddingLeft);
-        return {
-          rem: box.width / rem,
-          left: box.left - (main.left + padding),
-          right: main.right - padding - box.right,
-        };
-      },
-      view === "Glossary" ? ".page.glossary" : ".page.settings",
-    );
+    await page.goto("/?qa=analysis");
+    await openSettings(page);
+    const geometry = await page.evaluate((selector) => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const main = document.querySelector("main")!.getBoundingClientRect();
+      const box = document.querySelector(selector)!.getBoundingClientRect();
+      const padding = parseFloat(getComputedStyle(document.querySelector("main")!).paddingLeft);
+      return {
+        rem: box.width / rem,
+        left: box.left - (main.left + padding),
+        right: main.right - padding - box.right,
+      };
+    }, ".page.settings");
     expect(geometry.rem, "no wider than its measure").toBeLessThanOrEqual(64.05);
     expect(geometry.rem, "and actually at it, with this much room").toBeGreaterThanOrEqual(63.95);
     expect(Math.abs(geometry.left - geometry.right), "centred").toBeLessThanOrEqual(2);

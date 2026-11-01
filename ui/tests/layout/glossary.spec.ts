@@ -2,8 +2,8 @@ import type { Locator, Page } from "@playwright/test";
 import { assertContained, assertPageDoesNotScrollSideways } from "./contained";
 import { expect, test } from "./fixtures";
 
-async function openGlossary(page: Page) {
-  await page.goto("/?qa=reference&fixture=glossary");
+async function openGlossary(page: Page, keyboard = false) {
+  await page.goto(`/?qa=reference&fixture=glossary${keyboard ? "&keyboard=tab" : ""}`);
   await page.getByRole("button", { name: "Glossary" }).click();
   const collection = page.getByRole("navigation", { name: "Glossary terms" });
   await expect(collection).toBeVisible();
@@ -44,20 +44,10 @@ async function clickCard(item: Locator) {
   await preview.click({ position: { x: 4, y: box!.height - 3 } });
 }
 
-/**
- * Pick a term under the focus model, unless it is already the picked one, so the next click is
- * the one that opens or closes it. **Read the mode, don't guess it**: under `hover` one click does
- * both, and a picking click there would open the term instead.
- */
-async function pick(item: Locator) {
-  const mode = await item.locator("xpath=ancestor::*[@data-cards][1]").getAttribute("data-cards");
-  if (mode === "focus" && (await item.getAttribute("data-focused")) === null) await clickCard(item);
-}
 
 /** Open or close a term through its control's list item, the way a reader does. */
 async function toggle(tab: Locator) {
   const item = tab.locator("xpath=..");
-  await pick(item);
   await clickCard(item);
 }
 
@@ -111,7 +101,7 @@ test("the glossary is one column at every width and offers no layout choice", as
 
 test("normalised filtering exposes the alias that caused the match and uses safe marks", async ({ page }) => {
   const collection = await openGlossary(page);
-  await page.getByRole("textbox", { name: "Filter the glossary" }).fill("TE-FORM");
+  await page.getByRole("textbox", { name: "Find a glossary term" }).fill("TE-FORM");
   await expect(previews(collection)).toHaveCount(1);
   const preview = previews(collection).filter({ hasText: "Conjunctive form" });
   await expect(preview).toContainText("Matched “te-form”");
@@ -122,7 +112,7 @@ test("the filter reaches a term by its names and not through its prose", async (
   const collection = await openGlossary(page);
   // "object" is in both verb terms' summaries and in exactly one term's aliases — so one query
   // separates the two rules. Full-text matching returned Transitive and Intransitive alike.
-  await page.getByRole("textbox", { name: "Filter the glossary" }).fill("object");
+  await page.getByRole("textbox", { name: "Find a glossary term" }).fill("object");
   await expect(previews(collection)).toHaveCount(1);
   const preview = previews(collection).first();
   await expect(preview).toContainText("Transitive verb");
@@ -131,57 +121,74 @@ test("the filter reaches a term by its names and not through its prose", async (
   await expect(preview.locator("mark")).toHaveText("object");
 });
 
-/**
- * Promotion, glossary-shaped: **to the top of its own heading, never out of it.**
- *
- * Reference lifts an opened result to the very top of one flat collection. Here the headings are
- * the page — you browse by category — so a term that left `PARTS OF SPEECH` to sit above
- * `CONCEPTS` would lose the one thing on screen saying what kind of thing it is. Both halves are
- * asserted: the term reaches the front of its section, and the sections themselves do not move.
- *
- * The fixture's two part-of-speech terms are in one category, which is what makes this
- * measurable: promoting the second must reorder that category and leave the earlier one alone.
- */
-test("an opened term rises to the top of its own heading, and the headings stay put", async ({ page }) => {
+test("opening a term preserves its category and alphabetical positions", async ({ page }) => {
   const collection = await openGlossary(page);
-  const headings = () => collection.locator(".term-section h3").allTextContents();
-  const inSection = (label: string) =>
-    collection.locator(".term-section", { has: page.getByRole("heading", { name: label }) }).locator(".term");
-
-  const groups = await headings();
-  const parts = inSection("Parts of speech");
-  const before = await parts.locator(".preview strong").allTextContents();
-  expect(before.length).toBeGreaterThan(1);
-
-  // The second of its category, so promotion has somewhere to move it from.
-  await toggle(opener(previews(collection).filter({ hasText: before[1] })));
-  await expect
-    .poll(() => parts.locator(".preview strong").allTextContents())
-    .toEqual([before[1], before[0], ...before.slice(2)]);
-
-  // The categories are untouched, and the promoted term is still inside its own one.
-  expect(await headings()).toEqual(groups);
-  await expect(parts.filter({ hasText: before[1] }).locator(".inline-detail")).toHaveCount(1);
-
-  // Collapsing hands the category back in its authored order.
+  const order = () => collection.locator(".preview strong").allTextContents();
+  const before = await order();
+  await toggle(openers(collection).last());
+  await expect.poll(order).toEqual(before);
   await page.keyboard.press("Escape");
-  await expect.poll(() => parts.locator(".preview strong").allTextContents()).toEqual(before);
-
+  await page.getByRole("button", { name: "A–Z", exact: true }).click();
+  const alpha = await order();
+  await toggle(openers(collection).nth(2));
+  await expect.poll(order).toEqual(alpha);
   await assertContained(page);
-  await assertPageDoesNotScrollSideways(page);
 });
 
-test("relations move the sole expansion and connected patterns stay in the shared detail", async ({ page }) => {
-  const collection = await openGlossary(page);
+test("similar terms stay visible and move the sole expansion", async ({ page }) => {
+  const collection = await openGlossary(page, true);
   await toggle(opener(previews(collection).filter({ hasText: "Conjunctive form" })));
   const conjunctive = page.getByRole("region", { name: "Conjunctive form detail" });
-  await expect(conjunctive).toContainText("Used in these patterns");
-  await expect(conjunctive).toContainText("〜てくる");
+  await expect(conjunctive.getByRole("region", { name: "Similar terms", exact: true })).toBeVisible();
+  await expect(conjunctive.locator("details")).toHaveCount(0);
+  await expect(conjunctive).not.toContainText("Connected grammar patterns");
+  expect(await commandCount(page, "patterns_for_term")).toBe(0);
   await conjunctive.getByRole("button", { name: "Auxiliary" }).click();
   await expect(conjunctive).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Auxiliary detail" })).toBeVisible();
+  const auxiliary = page.getByRole("region", { name: "Auxiliary detail" });
+  await expect(auxiliary).toBeVisible();
+  await expect(auxiliary.getByRole("button", { name: "Conjunctive form", exact: true })).toHaveCount(1);
+  await expect(collection.locator('.disclose[data-term="aux"]')).toBeFocused();
   await expect(collection.locator(".inline-detail")).toHaveCount(1);
   await assertContained(page);
+});
+
+test("similar-term navigation clears only a filter hiding its destination", async ({ page }) => {
+  const collection = await openGlossary(page, true);
+  const filter = page.getByRole("textbox", { name: "Find a glossary term" });
+  await filter.fill("te-form");
+  await toggle(openers(collection).first());
+  await page.getByRole("region", { name: "Conjunctive form detail" }).getByRole("button", { name: "Auxiliary", exact: true }).press("Enter");
+  await expect(filter).toHaveValue("");
+  await expect(collection.locator('.disclose[data-term="aux"]')).toHaveAttribute("aria-expanded", "true");
+  await expect(collection.locator('.disclose[data-term="aux"]')).toBeFocused();
+  await expect(collection.locator('.term[data-item="aux"] .preview')).toBeInViewport();
+
+  await filter.fill("verb");
+  await page.getByRole("button", { name: "A–Z", exact: true }).click();
+  const order = await previews(collection).allTextContents();
+  await toggle(collection.locator('.disclose[data-term="vt"]'));
+  await page.getByRole("region", { name: "Transitive verb detail" }).getByRole("button", { name: "Intransitive verb", exact: true }).click();
+  await expect(filter).toHaveValue("verb");
+  await expect(page.getByRole("region", { name: "Intransitive verb detail" })).toBeVisible();
+  await expect(previews(collection)).toHaveText(order);
+  await assertContained(page);
+});
+
+test("an unlinked term hides the similar-terms section", async ({ page }) => {
+  await page.goto("/?qa=reference&fixture=glossary");
+  await expect(page.getByRole("button", { name: "Glossary", exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    const qa = (window as Window & { __SAKATSU_QA__: { answerNext: (command: string, value: unknown) => void } }).__SAKATSU_QA__;
+    qa.answerNext("all_terms", [{ id: "unlinked", label: "Unlinked term", aliases: [], summary: "A standalone test concept.", detail: null, examples: [], requires: [], contrasts: [], related: [], kind: "concept" }]);
+  });
+  await page.getByRole("button", { name: "Glossary", exact: true }).click();
+  const collection = page.getByRole("navigation", { name: "Glossary terms" });
+  await toggle(openers(collection).first());
+  const similar = page.getByRole("region", { name: "Similar terms", exact: true });
+  await expect(similar).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Similar terms", exact: true })).toHaveCount(0);
+  expect(await commandCount(page, "patterns_for_term")).toBe(0);
 });
 
 test("Glossary uses roving focus and Escape restores the expanded preview", async ({ page }) => {
@@ -214,19 +221,19 @@ test("the collection keeps a stable accessible hierarchy and a deterministic sin
   expect(previewNodes).toBeLessThan(140);
   await expect(collection).toMatchAriaSnapshot(`
     - navigation "Glossary terms":
-      - heading "Forms" [level=3]
+      - heading "Forms 1" [level=3]
       - list:
         - listitem:
           - strong: Conjunctive form
           - text: A form that connects a word to the construction that follows it.
           - button "Show details for Conjunctive form"
-      - heading "Concepts" [level=3]
+      - heading "Concepts 1" [level=3]
       - list:
         - listitem:
           - strong: Auxiliary
           - text: A supporting word that adds tense, voice, direction, or another grammatical meaning.
           - button "Show details for Auxiliary"
-      - heading "Parts of speech" [level=3]
+      - heading "Parts of speech 2" [level=3]
       - list:
         - listitem:
           - strong: Transitive verb
@@ -249,7 +256,7 @@ test("the collection keeps a stable accessible hierarchy and a deterministic sin
   if (testInfo.project.name === "edge-900-100") {
     await toggle(openers(collection).first());
     await expect(page.getByRole("region", { name: "Conjunctive form detail" })).toContainText("Try eating it.");
-    await expect.poll(() => commandCount(page, "patterns_for_term")).toBe(1);
+    expect(await commandCount(page, "patterns_for_term")).toBe(0);
     const detailNodes = await collection.locator("*").count();
     expect(detailNodes).toBeLessThan(260);
     await testInfo.attach("glossary-effect-boundary.json", {
@@ -267,39 +274,34 @@ test("the collection keeps a stable accessible hierarchy and a deterministic sin
  * place to select a summary from. This is that gesture returning with a step in front of it and
  * the guards that keep the summary selectable — so the removal is not simply undone.
  */
-test("a term is picked by the first click and opened by the second", async ({ page }) => {
+test("a term opens on its first click with the legacy preference enabled", async ({ page }) => {
   const collection = await openGlossary(page);
-  await expect(collection).toHaveAttribute("data-cards", "focus");
+  await expect(collection).toHaveAttribute("data-cards", "single");
   // Not the first term: the roving key starts there, so it is already picked — the one card on
   // the page that cannot show what a term at rest looks like.
   const term = collection.locator(".term").nth(1);
   const tab = term.locator("> .disclose");
-  const body = term.locator("> .card");
 
   await expect(term).not.toHaveAttribute("data-focused", "");
 
-  await body.click();
+  await clickCard(term);
   await expect(term).toHaveAttribute("data-focused", "");
-  await expect(tab).toHaveAttribute("aria-expanded", "false");
-  await expect(collection.locator(".inline-detail")).toHaveCount(0);
-
-  // Follow the key: opening promotes the term to the head of its heading.
-  const id = await tab.getAttribute("data-term");
-  await body.click();
-  await expect(collection.locator(`.disclose[data-term="${id}"]`)).toHaveAttribute("aria-expanded", "true");
+  await expect(tab).toHaveAttribute("aria-expanded", "true");
   await expect(collection.locator(".inline-detail")).toHaveCount(1);
+
+  // The next preview click closes the same entry without changing list order.
+  const id = await tab.getAttribute("data-term");
+  await clickCard(term);
+  await expect(collection.locator(`.disclose[data-term="${id}"]`)).toHaveAttribute("aria-expanded", "false");
+  await expect(collection.locator(".inline-detail")).toHaveCount(0);
 });
 
-/**
- * With the setting off, one click on a term opens it and one more closes it. Until 2026-10-17 that
- * click went to a tab that rolled out under a resting pointer; the tab is gone and the card takes
- * the click.
- */
-test("with the setting off, one click on a term opens it and one more closes it", async ({ page }) => {
+/** Older stored values must not bring back a two-step activation. */
+test("the legacy preference off also uses one click to open and close", async ({ page }) => {
   await page.goto("/?qa=reference&fixture=glossary&cards=hover");
   await page.getByRole("button", { name: "Glossary" }).click();
   const collection = page.getByRole("navigation", { name: "Glossary terms" });
-  await expect(collection).toHaveAttribute("data-cards", "hover");
+  await expect(collection).toHaveAttribute("data-cards", "single");
   // Follow the key: opening promotes the term to the head of its heading.
   const id = await collection.locator(".term").nth(1).locator("> .disclose").getAttribute("data-term");
   const tab = collection.locator(`.disclose[data-term="${id}"]`);
@@ -336,7 +338,7 @@ test("clicking a term repeatedly does not wedge it", async ({ page }) => {
 });
 
 /** The regression itself, over the Glossary's own handler: a double-click must still open a term. */
-test("double-clicking a term opens it and leaves it answering", async ({ page }) => {
+test("double-clicking toggles twice and keeps later clicks responsive", async ({ page }) => {
   const collection = await openGlossary(page);
   const term = collection.locator(".term").first();
   const tab = term.locator("> .disclose");

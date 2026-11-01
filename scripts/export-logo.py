@@ -21,6 +21,8 @@ SVG = "http://www.w3.org/2000/svg"
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inkscape", type=Path)
+    parser.add_argument("--app-icons", action="store_true",
+                        help="also refresh the UI logo and generate application icons with Tauri")
     args = parser.parse_args()
     executable = args.inkscape or shutil.which("inkscape")
     if not executable and os.name == "nt":
@@ -94,7 +96,25 @@ def main():
             replacement = destination.with_suffix(destination.suffix + ".partial")
             replacement.write_bytes(source.read_bytes())
             replacement.replace(destination)
-    print("Exported two SVGs and three PNGs from the exact rail outline using Inkscape.")
+    if args.app_icons:
+        # Generate separately so an exporter failure cannot partially replace app icons.
+        with tempfile.TemporaryDirectory(prefix="sakatsu-icons-") as directory:
+            icon_dir = Path(directory) / "icons"
+            subprocess.run(["cargo", "tauri", "icon", str(out / "sakatsu-avatar.svg"),
+                            "--output", str(icon_dir)], cwd=ROOT, check=True)
+            for source in icon_dir.rglob("*"):
+                if source.is_file():
+                    destination = ROOT / "src-tauri/icons" / source.relative_to(icon_dir)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    replacement = destination.with_suffix(destination.suffix + ".partial")
+                    replacement.write_bytes(source.read_bytes())
+                    replacement.replace(destination)
+        ui_logo = ROOT / "ui/src/assets/brand/sakatsu.svg"
+        ui_logo.parent.mkdir(parents=True, exist_ok=True)
+        ui_logo.write_bytes((out / "sakatsu-avatar.svg").read_bytes())
+        (ROOT / "src-tauri/icons/source.png").write_bytes((out / "sakatsu-avatar-1024.png").read_bytes())
+    print("Exported the exact rail outline using Inkscape" +
+          (", including UI and application icons." if args.app_icons else "."))
 
 
 if __name__ == "__main__":

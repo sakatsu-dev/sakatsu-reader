@@ -11,12 +11,26 @@ fn encoded(value: impl AsRef<[u8]>) -> String {
     base64::engine::general_purpose::STANDARD.encode(value)
 }
 
-fn fixture(
-    mode: &str,
-) -> (
-    tauri::App<tauri::test::MockRuntime>,
-    std::thread::JoinHandle<()>,
-) {
+struct FeedServer {
+    thread: std::thread::JoinHandle<()>,
+    requested: std::sync::mpsc::Receiver<()>,
+    release: std::sync::mpsc::Sender<()>,
+}
+impl FeedServer {
+    fn wait_requested(&self) {
+        self.requested
+            .recv_timeout(std::time::Duration::from_secs(8))
+            .expect("the first updater request must reach the fixture");
+    }
+    fn release(&self) {
+        self.release.send(()).unwrap();
+    }
+    fn join(self) -> std::thread::Result<()> {
+        self.thread.join()
+    }
+}
+
+fn fixture(mode: &str) -> (tauri::App<tauri::test::MockRuntime>, FeedServer) {
     let keys = minisign::KeyPair::generate_unencrypted_keypair().unwrap();
     let wrong = minisign::KeyPair::generate_unencrypted_keypair().unwrap();
     let payload = b"signed fixture bytes, not an executable".to_vec();
@@ -46,6 +60,8 @@ fn fixture(
     };
     let feed = json!({"version":version,"platforms":{"windows-x86_64":{"url":format!("http://{address}/installer"),"signature":encoded(signature.to_bytes())}}});
     let mode = mode.to_string();
+    let (arrived, requested) = std::sync::mpsc::channel();
+    let (release, released) = std::sync::mpsc::channel();
     let thread = std::thread::spawn(move || {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(8);
         let mut requests = 0;
@@ -54,14 +70,20 @@ fn fixture(
                 std::thread::sleep(std::time::Duration::from_millis(5));
                 continue;
             };
+            // Accepted sockets may inherit the listener's nonblocking mode on Windows.
+            // A read timeout does not turn blocking mode back on.
+            stream.set_nonblocking(false).unwrap();
             stream
                 .set_read_timeout(Some(std::time::Duration::from_secs(2)))
                 .unwrap();
             let mut buf = [0; 8192];
             let count = stream.read(&mut buf).unwrap();
             let request = String::from_utf8_lossy(&buf[..count]);
+            arrived.send(()).unwrap();
             if mode == "duplicate" {
-                std::thread::sleep(std::time::Duration::from_millis(300));
+                released
+                    .recv_timeout(std::time::Duration::from_secs(8))
+                    .expect("the duplicate assertion must release the first request");
             }
             let body = if request.starts_with("GET /installer ") {
                 if mode == "tampered" {
@@ -94,7 +116,14 @@ fn fixture(
         .plugin(tauri_plugin_updater::Builder::new().build())
         .build(context)
         .unwrap();
-    (app, thread)
+    (
+        app,
+        FeedServer {
+            thread,
+            requested,
+            release,
+        },
+    )
 }
 
 #[test]
@@ -234,19 +263,13 @@ fn duplicate_production_checks_are_refused_and_an_offline_check_is_never_current
     let first = tauri::async_runtime::spawn(async move {
         sakatsu_desktop_lib::update::update_check(first_app, true).await
     });
-    for _ in 0..100 {
-        if sakatsu_desktop_lib::update::update_status(app.state()).phase
-            == sakatsu_core::update::UpdatePhase::Checking
-        {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(2));
-    }
+    server.wait_requested();
     let result = tauri::async_runtime::block_on(sakatsu_desktop_lib::update::update_check(
         app.handle().clone(),
         true,
     ));
     assert!(result.unwrap_err().contains("already running"));
+    server.release();
     tauri::async_runtime::block_on(first).unwrap().unwrap();
     server.join().unwrap();
     let offline = tauri::async_runtime::block_on(sakatsu_desktop_lib::update::update_check(

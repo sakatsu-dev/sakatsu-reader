@@ -195,7 +195,7 @@ reader when that came back fast. Auto never routes into it.
 folder, starts it when a capture needs it and
 stops it when the reader closes. There is no service, no tray icon and no startup entry.
 
-Local models are fetched, not bundled:
+Local models are fetched for packaging or development:
 
 ```powershell
 pwsh -File scripts/fetch-ocr-model.ps1    # manga-ocr, Apache-2.0
@@ -270,7 +270,7 @@ into a disposable Windows Sandbox with **networking switched off** and asserts t
 chain — exit code, the runtime arriving, the Add/Remove entry, the executable, and a window
 that is the app rather than an error dialog.
 
-Everything *else* large is still fetched, per §6: dictionaries and models are not bundled.
+The single installer also includes the pinned essentials package. Ichiran and optional resources retain separate downloads.
 ONNX Runtime is statically linked into the executable, but its Windows build uses the
 Microsoft C++ runtime, so the Windows build stages the four licensed x64 redistributable
 DLLs beside the executable — a clean machine launches without a second installer, an
@@ -299,8 +299,7 @@ the completion event is shown, so the next lookup uses it without a restart.
 pwsh -File scripts/fetch-dictionaries.ps1     # ~48 MB into %APPDATA%\com.sakatsu.app\dictionaries
 ```
 
-Jitendex (36.8 MB) and JMnedict (10.9 MB), both CC BY-SA 4.0. Nothing downloads
-automatically. The importer captures each dictionary's own `attribution` from its
+Jitendex (36.8 MB) and JMnedict (10.9 MB), both CC BY-SA 4.0. Publisher checks are automatic by default; dictionary downloads require approval unless explicitly enabled. The importer captures each dictionary's own `attribution` from its
 `index.json` and keeps it in `meta.json` beside the data — that licence requires
 attribution, so don't strip it.
 
@@ -661,3 +660,38 @@ Imabi, Tae Kim and Pomax stay off limits for import: all are all-rights-reserved
 linked. They are the references the grammar notes were written against, and they are credited once
 on the About page under **Consulted** (`credits::Group::Consulted`) rather than linked from each
 entry — the same acknowledgement, made once instead of forty-four times.
+
+### Prepare the included essentials
+
+Before any installer build, run:
+
+```powershell
+python scripts/prepare-essentials.py --fetch-missing
+cargo tauri build --bundles nsis
+```
+
+The producer checks the compiled catalog against the committed snapshot, verifies every input,
+then publishes `src-tauri/resources/essentials/essentials.zip`. `--source-root PATH` reuses
+verified artifacts laid out as `component-id/filename`; `--output PATH` supports other local
+outputs. Without `--fetch-missing`, missing inputs fail without contacting the network.
+The existing PowerShell package-builder entry point delegates to the same producer.
+The build hook refuses a missing or stale package. Data and the download cache remain ignored.
+
+First-run setup prefers the included package and fills missing resources. Working installed
+resources are preserved, including newer dictionaries. A damaged package offers an explicit
+Download repair rather than silently switching to the network. The older offline-package
+chooser remains a recovery tool. Ichiran still needs its separate guided setup.
+
+Settings > Search > Dictionaries accepts Yomitan word ZIPs and raw KANJIDIC2 `.xml.gz` files.
+An import is previewed before the user chooses Add or an explicit replacement target.
+Updates use publisher metadata and stable installation IDs, not dated titles. Imported
+publishers need consent before background access. Daily checks notify by default; automatic
+installation is opt-in. Unknown revision schemes and installations without a recorded version
+require manual approval. Models, WordNet, KanjiVG and KRADFILE remain release-pinned.
+
+Resource-backed accuracy checks continue using their frozen evaluation dictionaries. Updating
+an installed dictionary does not authorize refreshing a gold fixture or acceptance floor.
+
+Publisher orchestration tests replace only HTTP transport and use the production IPC handler.
+Run them explicitly with `cargo test -p sakatsu-desktop --features dictionary-publisher-tests --test dictionary_publishers`.
+The fixture feature is disabled by default and has no effect in release builds.

@@ -27,6 +27,8 @@ use sakatsu_core::study::Plan;
 pub enum Readiness {
     /// The preferred engine is live — or the policy is the built-in analyzer, which always is.
     Ready,
+    /// Preferred engine is selected but starts on first use, without a startup check.
+    Deferred,
     /// Ichiran is being checked at startup; the built-in analyzer stands in meanwhile.
     Probing,
     /// Ichiran did not answer the last probe. It is probed again, at most once per
@@ -71,7 +73,7 @@ impl Route {
             return None;
         }
         match &self.readiness {
-            Readiness::Ready => None,
+            Readiness::Ready | Readiness::Deferred => None,
             Readiness::Probing => Some(Fallback {
                 reason: FallbackReason::Starting,
                 scope: FallbackScope::Session,
@@ -96,7 +98,7 @@ impl Route {
                 Readiness::Unavailable { since, .. } => {
                     now.saturating_duration_since(*since) >= REPROBE_AFTER
                 }
-                Readiness::Ready => false,
+                Readiness::Ready | Readiness::Deferred => false,
             }
     }
 }
@@ -354,6 +356,14 @@ mod tests {
                 .standing_in()
                 .is_none()
         );
+    }
+
+    #[test]
+    fn deferred_startup_waits_for_reading_without_claiming_a_fallback() {
+        let deferred = route(AnalyzerPolicy::Automatic, "ichiran", Readiness::Deferred);
+        assert!(deferred.standing_in().is_none());
+        assert!(!deferred.reprobe_due(Instant::now() + REPROBE_AFTER));
+        assert_eq!(deferred.plan().primary.engine(), "ichiran");
     }
 
     #[test]

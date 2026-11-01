@@ -34,7 +34,7 @@
      Not `role="tablist"` on either. That role promises arrow-key navigation between tabs, which
      this does not implement; `aria-current` is the same thing the sidebar's views say and is true
      as written. -->
-<div class="strip">
+<div class="strip" role="group" aria-label="Open searches">
   <div class="tabs">
     <!-- Keyed by the tab itself, not by index. Closing the middle of three renumbers every tab
          after it, and an index key would leave the wrong one lit. -->
@@ -96,9 +96,10 @@
       type="button"
       class="clear-all tip-right"
       onclick={() => search.clearAll()}
+      aria-label="Close all searches"
       data-tip="Close every tab and start again"
     >
-      Clear all
+      Close all
     </button>
   {/if}
 </div>
@@ -169,11 +170,8 @@
     align-items: center;
     flex: 0 0 auto;
     max-width: 13rem;
-    /* A constant edge. It briefly followed a `--bar-edge` that turned accent on focus, along with
-       the bar and every other tab — five elements lighting up to report one cursor. What separates
-       the open tab is its *fill* and its erased top, which is the distinction that matters: one
-       belongs to the bar, the others sit behind it. */
-    border: 1px solid var(--border);
+    /* Share the field edge, including focus; the active top erases the join. */
+    border: 1px solid var(--bar-edge, var(--border));
     border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     /* The page's own ground, so an inactive tab reads as sitting *behind* the current one rather
        than beside it. `--surface` here would make all of them look open. */
@@ -197,7 +195,7 @@
     /* The sides and bottom follow the bar's edge, so this stays part of the outline rather than a
        shape with a stale border hanging off a bar that has lifted. **Shorthand first, then the top**
        — `border-color` sets all four, so the erasing pixel below has to be written after it. */
-    border-color: var(--border);
+    border-color: var(--bar-edge, var(--border));
     /* The erasing pixel. It has to be the bar's own fill; `transparent` would let the bar's border
        show through, and `--bg` would cut a page-coloured line across the join. */
     border-top-color: var(--bar-fill, var(--surface));
@@ -305,27 +303,20 @@
    * beside the tabs at all times, which is a lot of alarm for a control you press once. */
   .clear-all {
     flex: 0 0 auto;
-    /* **Exactly the block above it**, so the bar's end and this read as one column rather than two
-       things that happen to finish at the same place. Its width used to be its text's, which landed
-       two pixels shy of the divider by coincidence.
-     *
-     * The two controls in the bar are `--bar-button` each, and the `+ 1px` is the bar's own right
-     * border: they sit *inside* that border and this sits outside it, so covering their outer span
-     * means covering it too. Both numbers come from `.field` in `Reference.svelte`.
-     *
-     * No horizontal padding, because at that width there is none to spare. The label centres in it
-     * instead, and `nowrap` keeps it on one line if the interface size is turned up. */
-    width: calc(var(--bar-button, 2.2rem) * 2 + 1px);
-    padding: 0.25rem 0;
+    /* Align with the pair of field actions; allow wrapping at constrained widths. */
+    width: calc(var(--bar-button, 2.5rem) * 2 + 1px);
+    max-width: 40%;
+    padding: 0.25rem 0.5rem;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
     font-size: 0.82rem;
-    border: 1px solid var(--border);
+    border: 1px solid var(--bar-edge, var(--border));
     /* The erasing pixel, as on `.tab.current`: the bar's own fill painted over the bar's bottom
        edge, so this hangs off the bar rather than sitting under it. `--bar-fill` rather than a
        fixed `--surface` because the bar changes colour under the pointer, and a fixed value would
        draw a seam across the join at exactly that moment. */
 
+    border-top-color: var(--bar-fill, var(--surface));
     border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     background: var(--bar-fill, var(--surface));
     color: var(--text-faint);

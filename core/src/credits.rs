@@ -183,6 +183,14 @@ static ALL: &[Credit] = &[
         packages: &["vite"],
     },
     Credit {
+        name: "Motion",
+        licence: "MIT",
+        url: "https://motion.dev",
+        why: "Animates startup progress and the loading indicator, with reduced-motion support.",
+        group: Group::Frame,
+        packages: &["motion"],
+    },
+    Credit {
         name: "Playwright",
         licence: "Apache-2.0",
         url: "https://playwright.dev",

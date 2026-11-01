@@ -44,6 +44,10 @@ sidecars/models
 !.env.example
 *.pem
 
+# Generated release resources and verified download cache
+/.cache/
+src-tauri/resources/essentials/*.zip
+
 # Python bytecode from scripts/
 __pycache__/
 

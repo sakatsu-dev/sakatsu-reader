@@ -665,6 +665,8 @@ export type Settings = {
   quiet: boolean;
   /** Keep one analyzer sidecar alive rather than starting one per passage. Ichiran only. */
   ichiran_server: boolean;
+  /** Start Ichiran in the background after the window opens. */
+  preload_ichiran_on_startup: boolean;
   check_updates_on_startup: boolean;
   /** Write a diagnostic log file. */
   log: boolean;
