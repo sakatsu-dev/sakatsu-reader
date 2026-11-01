@@ -695,3 +695,46 @@ an installed dictionary does not authorize refreshing a gold fixture or acceptan
 Publisher orchestration tests replace only HTTP transport and use the production IPC handler.
 Run them explicitly with `cargo test -p sakatsu-desktop --features dictionary-publisher-tests --test dictionary_publishers`.
 The fixture feature is disabled by default and has no effect in release builds.
+# Private preview releases
+
+Release preparation uses pinned release-please tooling, following the release-PR
+pattern used by [Koharu](https://github.com/koharu-rs/koharu/blob/main/.github/workflows/release-pr.yml).
+Conventional `fix:`, `feat:` and breaking-change commits propose the next version
+and changelog in a pull request. Review and merge that PR to prepare a private
+Windows draft. The automation never merges PRs or publishes releases.
+
+Enable the repository variable `RELEASE_PR_AUTOMATION=enabled` only after approving
+GitHub's combined setting allowing Actions to create and approve pull requests.
+This workflow never approves or merges PRs. Without that opt-in, release-PR
+preparation is skipped. Default workflow
+permissions can remain read-only: only release preparation requests write access.
+Bot-created PRs receive an explicit CI dispatch because GitHub does not start
+another workflow from their ordinary token-generated events.
+
+The preview build requires all four CI jobs to pass on the exact main-branch
+commit. It verifies the pinned essentials and app-local WebView2 files, checks
+the installer payload, then installs, renders and uninstalls on a disposable
+Windows runner. A source archive, build configuration and checksums accompany
+the unsigned installer. This does not substitute for testing on other machines.
+
+Use **Build private Windows preview** with `verify_only` enabled to rehearse
+without creating or changing a release. To prepare an actual draft, disable
+that option and select a new version whose release PR has been merged. Review
+the draft's six files and successful build run before manually publishing it.
+An empty draft may appear while the build is still pending. A pending draft pauses the next
+release PR. Existing published assets are never replaced. If upload fails, rerun
+the failed publication job to reuse the same build artifact; a fresh build with
+different bytes cannot overwrite an existing partial draft.
+
+Unsigned previews are restricted to private repositories and do not enable
+in-app updating. The separate **Prepare signed Windows release** workflow still
+requires its protected signing environment and production updater configuration.
+This automation does not activate SignPath, WinGet or a public updater feed.
+
+Release helper checks:
+
+```sh
+npm --prefix .github/release-please ci --ignore-scripts
+npm --prefix .github/release-please test
+python -m unittest discover -s scripts
+```

@@ -1,0 +1,131 @@
+name: Build private Windows preview
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: main, a stable version tag, or an immutable main-branch commit
+        required: true
+        default: main
+      verify_only:
+        description: Build and test without creating or changing a release
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: private-preview
+  cancel-in-progress: false
+jobs:
+  resolve:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      version: ${{ steps.resolve.outputs.version }}
+      verify_only: ${{ steps.resolve.outputs.verify_only }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_REF: ${{ inputs.revision || github.ref_name }}
+          VERIFY_ONLY: ${{ inputs.verify_only && 'true' || 'false' }}
+        run: |
+          args=()
+          if [ "$VERIFY_ONLY" = true ]; then args+=(--verify-only); fi
+          python3 scripts/release-control.py resolve --repo "$GITHUB_REPOSITORY" --revision "$REQUESTED_REF" --output "$RUNNER_TEMP/revision.json" "${args[@]}"
+      - name: Require every CI job on the exact source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REVISION: ${{ steps.resolve.outputs.sha }}
+        run: python3 scripts/release-control.py wait-ci --repo "$GITHUB_REPOSITORY" --sha "$SOURCE_REVISION" --output "$RUNNER_TEMP/ci-evidence.json"
+  build:
+    needs: resolve
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Cache Cargo downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-preview-downloads-v1-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-preview-downloads-v1-
+      - name: Cache pinned essentials
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/essentials
+          key: essentials-v1-${{ hashFiles('scripts/offline-essentials-catalog.json') }}
+      - name: Cache pinned WebView2 archive
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/webview
+          key: webview-v1-${{ hashFiles('scripts/webview2-runtime.json') }}
+      - name: Install pinned build tools
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          rustup override set 1.99.0
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo install tauri-cli --version 2.10.1 --locked
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Build, inspect, install, render and uninstall
+        env:
+          SOURCE_REVISION: ${{ needs.resolve.outputs.sha }}
+          VERIFY_ONLY: ${{ needs.resolve.outputs.verify_only }}
+        run: |
+          ./scripts/build-preview.ps1 -SourceRevision $env:SOURCE_REVISION -OutputDirectory "$env:RUNNER_TEMP/preview" -BuildDirectory "$env:RUNNER_TEMP/preview-build" -DisposableEnvironment -VerifyOnly:($env:VERIFY_ONLY -eq 'true')
+      - id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: private-preview-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/preview/
+          if-no-files-found: error
+          retention-days: 14
+  draft:
+    needs: [resolve, build]
+    if: needs.resolve.outputs.verify_only == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - name: Download this build's artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/preview"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$RUNNER_TEMP/preview.zip"
+          unzip -q "$RUNNER_TEMP/preview.zip" -d "$RUNNER_TEMP/preview"
+      - name: Attach verified files to a private draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release-control.py publish-draft --repo "$GITHUB_REPOSITORY" --directory "$RUNNER_TEMP/preview"

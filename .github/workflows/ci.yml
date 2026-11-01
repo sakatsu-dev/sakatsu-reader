@@ -142,6 +142,11 @@ jobs:
           cache-dependency-path: ui/package-lock.json
 
       - run: npm ci
+      - name: Verify release tooling
+        working-directory: .github/release-please
+        run: |
+          npm ci --ignore-scripts
+          npm test
       # Type-checks the app *and* model.contract.ts, which fails if model.ts has
       # drifted from model.golden.json in either direction.
       - run: npm run check

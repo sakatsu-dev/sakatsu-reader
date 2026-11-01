@@ -58,3 +58,6 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+
+# Generated browser runtime; prepared from the pinned publisher archive.
+src-tauri/Microsoft.WebView2.FixedVersionRuntime.*/

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/v17.11.2/schemas/config.json",
+  "release-type": "sakatsu",
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "draft": true,
+  "prerelease": true,
+  "packages": {
+    ".": {}
+  }
+}

@@ -1,0 +1,54 @@
+name: Prepare release PR
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-pr
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main' && vars.RELEASE_PR_AUTOMATION == 'enabled'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: .github/release-please/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: .github/release-please
+      - id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/release-please/index.cjs
+      - name: Check the release PR
+        if: steps.prepare.outputs.branches != '[]'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCHES: ${{ steps.prepare.outputs.branches }}
+        run: |
+          node - <<'NODE'
+          const {execFileSync} = require('node:child_process');
+          for (const branch of JSON.parse(process.env.BRANCHES)) {
+            if (!/^release-please--branches--main(?:--[\w.-]+)?$/.test(branch)) throw Error('Unexpected release branch');
+            execFileSync('gh', ['workflow', 'run', 'ci.yml', '--ref', branch], {stdio:'inherit'});
+          }
+          NODE
+      - name: Build the merged release as a draft
+        if: steps.prepare.outputs.revision != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REVISION: ${{ steps.prepare.outputs.revision }}
+        run: gh workflow run preview-release.yml --ref main -f revision="$SOURCE_REVISION" -f verify_only=false
