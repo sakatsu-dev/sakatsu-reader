@@ -4834,7 +4834,7 @@ dependencies = [
 
 [[package]]
 name = "sakatsu-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "chrono",
  "encoding_rs",
@@ -4858,7 +4858,7 @@ dependencies = [
 
 [[package]]
 name = "sakatsu-desktop"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "arboard",
  "base64 0.23.1",
