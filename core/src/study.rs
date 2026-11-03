@@ -309,6 +309,9 @@ pub fn run_in(
     options: AnalysisOptions,
     context: &AnalysisContext<'_>,
 ) -> Result<Run, RunFailure> {
+    // A word the text box wrapped is one word again before anything reads it.
+    let joined = crate::analyzer::lines::rejoin_split_words_in(text, &context.assistance);
+    let text = joined.as_ref();
     context.assistance.prefetch(text);
     pass(text, analyzer, dictionaries, options, context)
 }
@@ -617,6 +620,9 @@ pub fn analyse_resilient_in(
         repairs,
     };
     let primary = plan.primary.engine().to_string();
+    // Before the first attempt, so the retry reads the same passage ([`run_in`]).
+    let joined = crate::analyzer::lines::rejoin_split_words_in(text, &context.assistance);
+    let text = joined.as_ref();
     context.assistance.prefetch(text);
     let failure = match pass(text, plan.primary, dictionaries, options, context) {
         Ok(mut done) => {

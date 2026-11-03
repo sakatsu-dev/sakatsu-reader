@@ -188,24 +188,152 @@ pub(crate) fn mark_in(
     advisor: Option<&dyn Advisor>,
 ) {
     mark(analysis, &|before, after| {
-        // Nothing on one side means nothing was joined, which needs no parser to see.
-        if before.is_empty() || after.is_empty() {
-            return false;
-        }
-        let joined = format!("{before}{after}");
-        let advice = match advisor {
-            Some(advisor) => assistance.ask_of(Stage::JoinedLines, &joined, advisor),
-            None => assistance.ask(Stage::JoinedLines, &joined),
-        };
-        advice.answered().is_some_and(|read| {
-            straddled(
-                before.len(),
-                read.tokens
-                    .iter()
-                    .filter_map(|token| Some((token.start?, token.end?))),
-            )
-        })
+        reads_through(assistance, advisor, before, after)
     });
+}
+
+/// Whether the parser reads straight through the join of two lines, asked through the request as
+/// a [`Stage::JoinedLines`] question. An unanswered question is no.
+fn reads_through(
+    assistance: &Assistance<'_>,
+    advisor: Option<&dyn Advisor>,
+    before: &str,
+    after: &str,
+) -> bool {
+    joined_reading(assistance, advisor, before, after, |read| {
+        straddled(
+            before.len(),
+            read.tokens
+                .iter()
+                .filter_map(|token| Some((token.start?, token.end?))),
+        )
+    })
+}
+
+/// The parser's reading of two lines joined, asked through the request as a [`Stage::JoinedLines`]
+/// question, put to `test`. An unanswered question is no.
+fn joined_reading(
+    assistance: &Assistance<'_>,
+    advisor: Option<&dyn Advisor>,
+    before: &str,
+    after: &str,
+    test: impl FnOnce(&Analysis) -> bool,
+) -> bool {
+    // Nothing on one side means nothing was joined, which needs no parser to see.
+    if before.is_empty() || after.is_empty() {
+        return false;
+    }
+    let joined = format!("{before}{after}");
+    let advice = match advisor {
+        Some(advisor) => assistance.ask_of(Stage::JoinedLines, &joined, advisor),
+        None => assistance.ask(Stage::JoinedLines, &joined),
+    };
+    advice.answered().is_some_and(test)
+}
+
+/// Whether the join at `join` cuts a word of `tokens`: a token crosses it, and so does the part of
+/// that token the join falls in.
+///
+/// **Parts, not only tokens.** The built-in analyzer groups words into larger tokens, and a group
+/// can cross a join while every word in it is whole: ご来館 at the end of one line and 心より at the
+/// start of the next were grouped as ご来館心, and 徘徊 and する as 徘徊する. That is enough to call
+/// the break a wrap ([`mark`]), but taking it out would hand the reader ご来館心. Only a word that
+/// is itself cut — 払 | 拭, 見 | つけ — says the text box broke it.
+fn cuts_a_word(join: usize, tokens: &[crate::model::Token]) -> bool {
+    let crosses = |token: &crate::model::Token| matches!((token.start, token.end), (Some(start), Some(end)) if start < join && join < end);
+    tokens.iter().any(|token| {
+        crosses(token) && (token.components.is_empty() || token.components.iter().any(crosses))
+    })
+}
+
+/// The passage with every line break a word runs across taken out, before any analyzer reads it.
+///
+/// **Why.** [`mark`] decides what a break means, but only after the analyzers have read the
+/// passage, and both cut at a newline: the built-in one cuts its lattice there and Ichiran returns
+/// the break as its own segment. A game's text box wraps where its width runs out, mid-word as
+/// often as not, so 払拭 wrapped as 払 / 拭 was read as two pieces, and neither is the word the
+/// reader wanted to look up. PaddleOCR reports one line per box it detects, so
+/// the break is really there; only the reader can tell that it means nothing.
+///
+/// **Which breaks.** Only one that cuts a word: the parser reads the two lines joined, and a word
+/// crosses the join ([`cuts_a_word`]). A line hanging on a linking particle wraps too, but its
+/// break falls between words, splits nothing, and stays for [`mark`] to classify. A line ending in
+/// a terminator, a blank line, and a break with anything but Japanese on either side are never
+/// asked about: the parser reads `gives` and `us` on two lines as one unknown run, and joining
+/// them would weld two English words.
+///
+/// **What it costs.** The break is gone from the passage, so "keep the capture's line breaks" runs
+/// those two lines on. A break inside a word was the text box's, not the writer's.
+pub(crate) fn rejoin_split_words<'t>(
+    text: &'t str,
+    straddles: Straddles<'_>,
+) -> std::borrow::Cow<'t, str> {
+    let text = normalise_breaks(text);
+    let cuts = split_word_breaks(&text, straddles);
+    if cuts.is_empty() {
+        return text;
+    }
+    let mut joined = String::with_capacity(text.len());
+    let mut from = 0;
+    for (start, end) in cuts {
+        joined.push_str(&text[from..start]);
+        from = end;
+    }
+    joined.push_str(&text[from..]);
+    std::borrow::Cow::Owned(joined)
+}
+
+/// [`rejoin_split_words`], with each straddle question asked through the request — of its provider,
+/// the shared embedded parser, as [`mark_in`] asks for the Ichiran conversion.
+pub(crate) fn rejoin_split_words_in<'t>(
+    text: &'t str,
+    assistance: &Assistance<'_>,
+) -> std::borrow::Cow<'t, str> {
+    rejoin_split_words(text, &|before, after| {
+        joined_reading(assistance, None, before, after, |read| {
+            cuts_a_word(before.len(), &read.tokens)
+        })
+    })
+}
+
+/// The byte range of each break a word straddles: the newline, with the spaces either side of it.
+fn split_word_breaks(text: &str, straddles: Straddles<'_>) -> Vec<(usize, usize)> {
+    let bytes = text.as_bytes();
+    let mut cuts = Vec::new();
+    let mut at = 0;
+    while at < bytes.len() {
+        if bytes[at] != b'\n' {
+            at += 1;
+            continue;
+        }
+        let mut start = at;
+        while start > 0 && matches!(bytes[start - 1], b' ' | b'\t') {
+            start -= 1;
+        }
+        let mut end = at;
+        let mut newlines = 0;
+        while end < bytes.len() && bytes[end].is_ascii_whitespace() {
+            if bytes[end] == b'\n' {
+                newlines += 1;
+            }
+            end += 1;
+        }
+        at = end;
+        // A blank line between two lines is a paragraph gap, which no word runs across.
+        if newlines > 1 {
+            continue;
+        }
+        let before = line_before(text, start);
+        let after = line_after(text, end);
+        let japanese = |c: Option<char>| c.is_some_and(crate::kana::is_japanese);
+        if !japanese(before.chars().last()) || !japanese(after.chars().next()) {
+            continue;
+        }
+        if straddles(before, after) {
+            cuts.push((start, end));
+        }
+    }
+    cuts
 }
 
 /// Whether the break between two lines looks like a **wrap**, for a caller that has only the text.
@@ -374,5 +502,78 @@ mod tests {
         analysis.tokens[0].end = None;
         mark(&mut analysis, &never);
         assert_eq!(analysis.tokens[0].line_break, LineBreak::None);
+    }
+
+    #[test]
+    fn a_break_a_word_runs_across_is_taken_out_with_its_spaces() {
+        assert_eq!(
+            rejoin_split_words("６人宿泊させ\nて欲しい", &always),
+            "６人宿泊させて欲しい"
+        );
+        assert_eq!(
+            rejoin_split_words("６人宿泊させ \n て欲しい", &always),
+            "６人宿泊させて欲しい"
+        );
+    }
+
+    #[test]
+    fn a_break_no_word_runs_across_is_kept() {
+        let kept = rejoin_split_words("優等生\n心配性", &never);
+        assert!(
+            matches!(kept, std::borrow::Cow::Borrowed(_)),
+            "nothing to do, nothing copied"
+        );
+        assert_eq!(kept, "優等生\n心配性");
+    }
+
+    #[test]
+    fn a_paragraph_gap_or_a_finished_line_is_never_rejoined() {
+        // The probe that always claims a straddle, so the rules are what is tested.
+        assert_eq!(
+            rejoin_split_words("優等生\n\n心配性", &always),
+            "優等生\n\n心配性"
+        );
+        assert_eq!(
+            rejoin_split_words("水を飲む。\nパン", &always),
+            "水を飲む。\nパン"
+        );
+    }
+
+    #[test]
+    fn rejoining_folds_carriage_returns_as_the_analyzers_do() {
+        assert_eq!(
+            rejoin_split_words("優等生\r\n心配性", &never),
+            "優等生\n心配性"
+        );
+    }
+
+    #[test]
+    fn a_break_with_anything_but_japanese_beside_it_is_never_asked_about() {
+        assert_eq!(
+            rejoin_split_words("best\nexercise", &always),
+            "best\nexercise"
+        );
+        assert_eq!(rejoin_split_words("優等生\n2人", &always), "優等生\n2人");
+    }
+
+    fn token(start: usize, end: usize, parts: &[(usize, usize)]) -> Token {
+        Token {
+            start: Some(start),
+            end: Some(end),
+            components: parts.iter().map(|&(s, e)| token(s, e, &[])).collect(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_word_is_cut_only_where_the_join_falls_inside_it() {
+        // One word across the join.
+        assert!(cuts_a_word(3, &[token(0, 6, &[])]));
+        // A group whose part crosses the join.
+        assert!(cuts_a_word(3, &[token(0, 9, &[(0, 6), (6, 9)])]));
+        // A group whose parts meet at the join: each word is whole on its own line.
+        assert!(!cuts_a_word(6, &[token(0, 9, &[(0, 6), (6, 9)])]));
+        // Nothing crosses it.
+        assert!(!cuts_a_word(6, &[token(0, 6, &[]), token(6, 9, &[])]));
     }
 }
