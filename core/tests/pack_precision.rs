@@ -152,9 +152,7 @@ fn firing_rate_on_an_independent_corpus() {
     // is most of what has been written recently, and every rule converted to that form to
     // cope with Ichiran's fused tokens. A dead element rule was invisible here, which is
     // the one thing this test exists to notice.
-    let has_rule = |p: &&sakatsu_core::grammar::pack::GrammarPattern| {
-        !p.match_text.is_empty() || p.match_tokens.is_some()
-    };
+    let has_rule = |p: &&sakatsu_core::grammar::pack::GrammarPattern| p.is_ruled();
     let ruled = pack::hanabira().patterns.iter().filter(has_rule).count();
     println!(
         "\n{} of {ruled} imported rules fired at least once on independent text\n",
@@ -281,9 +279,22 @@ fn ceiling_for(level: &str) -> f64 {
 /// - `ねばならない` — 高い料金を払わねばならない ("must pay a high fee")
 /// - `により` — 介護保険により負担されます ("is covered through care insurance")
 ///
+/// Two more are common because they are everyday speech, whatever level the pack gives them.
+/// Read 2026-11-03, every hit or a seeded sample, with the matched span:
+///
+/// - `〜とか` — 高校の問題とか ("things like high-school questions"), and the hedge
+///   方だとか？ ("someone like that?"), both of which the entry teaches. 28 of all 29 hits;
+///   the other is the verb とかす (髪をとかしながら). The と + か of なんとか is excluded by the
+///   rule itself.
+/// - `な-Adjective に` — 社会的に, 確実に, 大切に. 35 of 40 sampled hits; the other five are
+///   a noun taking に as its object (危険に気付いた, 健康に恵まれている), which UniDic marks
+///   the same way.
+///
 /// Add to this list only after looking at the sentences the rule actually matched.
 const EXAMINED_AND_CORRECT: &[&str] = &[
     "hanabira-n2-te-wa-naranai",
     "hanabira-n2-neba-naranai",
     "hanabira-n2-ni-yori",
+    "hanabira-n2-to-ka",
+    "hanabira-n5-adjective-verb",
 ];

@@ -11,6 +11,7 @@
 //! - [`compounds`] names the 〜てくる-style patterns an auxiliary forms.
 //! - [`formation`] shows how *this* word builds *that* form, in kana.
 //! - [`matcher`] finds grammar patterns across a token sequence.
+//! - [`inside`] finds the grammar a token holds inside it, for the reader.
 //! - [`pack`] holds every word of explanatory text — code decides *whether* a
 //!   pattern applies, the pack decides what is *said* about it.
 
@@ -18,6 +19,7 @@ pub mod compounds;
 pub mod derivation;
 pub mod form;
 pub mod formation;
+pub mod inside;
 pub mod matcher;
 pub mod occurrence;
 pub mod pack;
@@ -72,6 +74,21 @@ pub fn patterns(analysis: &Analysis) -> Vec<Match> {
     found.extend(structural(&analysis.tokens));
     // `find_across` yields left to right and the panel reads in that order, so a structurally
     // found pattern has to take its place in the sentence rather than being appended after it.
+    found.sort_by_key(|found| (found.first_token, found.last_token_end));
+    found
+}
+
+/// What the reader is shown: [`patterns`], and the grammar inside a word that no rule over
+/// whole tokens can reach ([`inside`]).
+///
+/// **The reader's view, and only the reader's.** [`patterns`] stays what lexical grouping and the
+/// expression offer build on; a pattern found inside one token is a statement about that token,
+/// not a run of tokens anything may join or anchor to.
+pub fn displayed(analysis: &Analysis) -> Vec<Match> {
+    let mut found = patterns(analysis);
+    let within = inside::find(&analysis.tokens, &found);
+    found.extend(within);
+    let mut found = inside::without_split_words(&analysis.tokens, found);
     found.sort_by_key(|found| (found.first_token, found.last_token_end));
     found
 }

@@ -2383,6 +2383,10 @@ fn normalize_form(form: &str, pos: &str) -> String {
         "命令形" => "Imperative",
         // Kept for the labels UniDic shares with IPADIC's vocabulary rather than renaming.
         "体言接続" => "Attributive",
+        // An i-adjective's 語幹 is the stem 〜そう and 〜すぎる attach to (楽し|そう), the form
+        // Ichiran reports as "Adjective Stem". Left raw, it read as unclassified, and the same
+        // word got a stem under one analyzer and nothing under the other.
+        "語幹" if pos == "adj-i" => "Adjective Stem",
         "語幹" => return form.to_string(),
         _ => return form.to_string(),
     };

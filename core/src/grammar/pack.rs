@@ -98,6 +98,14 @@ pub struct GrammarPattern {
     /// compound's shape, not by matching surfaces.
     #[serde(default, rename = "match")]
     pub match_tokens: Option<Vec<Element>>,
+    /// Further token sequences for the same pattern, each tried like `match`.
+    ///
+    /// For a pattern the two analyzers shape too differently for one sequence. なんで "why"
+    /// arrives from the built-in analyzer as the pronoun なん and で — and must not be the
+    /// copula なん and で of 暇なんで, "because I'm free" — but from Ichiran as one token.
+    /// One sequence cannot say both, and a surface run cannot tell the two なん apart.
+    #[serde(default)]
+    pub match_also: Vec<Vec<Element>>,
     /// Surface runs that identify this pattern, each matched across **one or more
     /// whole tokens** whose surfaces concatenate to it.
     ///
@@ -112,6 +120,21 @@ pub struct GrammarPattern {
     /// starting there concatenates to exactly `には`.
     #[serde(default)]
     pub match_text: Vec<String>,
+}
+
+impl GrammarPattern {
+    /// Every token sequence that identifies this pattern: `match`, then `match_also`.
+    pub fn token_rules(&self) -> impl Iterator<Item = &[Element]> {
+        self.match_tokens
+            .as_deref()
+            .into_iter()
+            .chain(self.match_also.iter().map(Vec::as_slice))
+    }
+
+    /// Whether anything can find this pattern in text.
+    pub fn is_ruled(&self) -> bool {
+        self.token_rules().next().is_some() || !self.match_text.is_empty()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -184,12 +207,21 @@ pub struct Element {
     /// a rule per spelling. The longest matching run wins, as it does elsewhere.
     #[serde(default)]
     pub surface_ends_any: Vec<String>,
+    /// None of these surfaces. For a token that would otherwise satisfy a broad part but is
+    /// the head of a more specific pattern: the よう of ように is a な-adjective stem before
+    /// the copula's に, and ように is not "な-adjective に".
+    #[serde(default)]
+    pub not_surface_any: Vec<String>,
     #[serde(default)]
     pub dict_form: Option<String>,
     /// A [`Form`] id, e.g. `"provisional"` — matched against the token's
     /// conjugation rather than its spelling.
     #[serde(default)]
     pub form: Option<String>,
+    /// Any one of these [`Form`] ids. 〜そうだ follows a verb's continuative stem (降りそう)
+    /// and an adjective's stem (楽しそう) alike, and one part has to accept both.
+    #[serde(default)]
+    pub form_any: Vec<String>,
     #[serde(default)]
     pub neg: Option<bool>,
     /// Whether the token inflects at all — true for a verb or adjective, false for a
@@ -199,6 +231,30 @@ pub struct Element {
     /// `机の上に` (a shelf, after a noun and の), without needing part of speech.
     #[serde(default)]
     pub conjugated: Option<bool>,
+    /// Whether this part must open a sentence ([`opens_sentence`]).
+    ///
+    /// Some spellings are two grammar points depending on where they stand. でも that begins a
+    /// sentence is "but"; after a noun it is usually で and も doing their own jobs (学校でも, at
+    /// school too). だけど that begins a sentence is the contrastive opener; inside one it is the
+    /// copula and けど. Position is the only thing that tells them apart, and both analyzers
+    /// report it, so a rule can ask for it rather than claim every occurrence.
+    #[serde(default)]
+    pub sentence_initial: Option<bool>,
+    /// Whether this part must follow a word in the same sentence ([`follows_word`]): not a
+    /// boundary, not punctuation, not a particle.
+    ///
+    /// Ichiran reads the なんで of 暇なんで, "because I'm free", as the adverb "why" — the same
+    /// token as the なんで of なんで怒ってるの. Only what stands before it separates them: "why"
+    /// opens its clause, and "because" follows the word it explains.
+    #[serde(default)]
+    pub follows_word: Option<bool>,
+    /// None of these surfaces stands just before this part.
+    ///
+    /// A particle like ばっかり closes a phrase the copula can follow: 食べたばっかりなんで is
+    /// "since I only just ate", yet both analyzers read that なんで as "why", and the built-in
+    /// analyzer cannot tell ばっかり from the は of 君はなんで. The word before it can.
+    #[serde(default)]
+    pub not_after_any: Vec<String>,
     /// Fewest tokens this part may consume. Defaults to 1; `0` makes it optional.
     #[serde(default)]
     pub min: Option<usize>,
@@ -226,10 +282,15 @@ impl Element {
             && self.surface_any.is_empty()
             && self.surface_ends.is_none()
             && self.surface_ends_any.is_empty()
+            && self.not_surface_any.is_empty()
             && self.dict_form.is_none()
             && self.form.is_none()
+            && self.form_any.is_empty()
             && self.neg.is_none()
             && self.conjugated.is_none()
+            && self.sentence_initial.is_none()
+            && self.follows_word.is_none()
+            && self.not_after_any.is_empty()
     }
 
     /// The constraints that describe a token rather than its spelling.
@@ -245,6 +306,9 @@ impl Element {
                 return false;
             }
         }
+        if self.not_surface_any.contains(&token.surface) {
+            return false;
+        }
         if let Some(dict_form) = &self.dict_form {
             if &token.dict_form != dict_form {
                 return false;
@@ -254,6 +318,9 @@ impl Element {
             if !props(token).any(|prop| Form::classify(&prop.form).id() == form) {
                 return false;
             }
+        }
+        if !self.form_any.is_empty() && !has_form(token, &self.form_any) {
+            return false;
         }
         if let Some(neg) = &self.neg {
             if !props(token).any(|prop| prop.neg == *neg) {
@@ -286,6 +353,9 @@ impl Element {
         if !self.surface_any.is_empty() && !self.surface_any.contains(&token.surface) {
             return false;
         }
+        if self.not_surface_any.contains(&token.surface) {
+            return false;
+        }
         if let Some(dict_form) = &self.dict_form {
             if &token.dict_form != dict_form {
                 return false;
@@ -296,6 +366,9 @@ impl Element {
                 return false;
             }
         }
+        if !self.form_any.is_empty() && !has_form(token, &self.form_any) {
+            return false;
+        }
         if let Some(neg) = &self.neg {
             if !props(token).any(|prop| prop.neg == *neg) {
                 return false;
@@ -305,8 +378,77 @@ impl Element {
     }
 }
 
+/// The part-of-speech tags that mark a function word, as an analyzer that reports senses
+/// writes them.
+const FUNCTION_WORD: &[&str] = &["prt", "aux", "conj", "exp", "cop"];
+
+/// Whether the analyzer classed this token as a function word. The built-in analyzer leaves
+/// `senses` empty, which answers no.
+pub fn is_function_word(token: &Token) -> bool {
+    token.senses.iter().any(|sense| {
+        sense
+            .pos
+            .split(|c: char| c == ',' || c == '[' || c == ']' || c.is_whitespace())
+            .any(|tag| FUNCTION_WORD.contains(&tag))
+    })
+}
+
+/// Whether the token at `index` follows a word in the same sentence: the one before it is not
+/// a sentence boundary, has a letter in it — so it is not punctuation — and is not a particle
+/// or auxiliary.
+pub fn follows_word(tokens: &[Token], index: usize) -> bool {
+    if opens_sentence(tokens, index) {
+        return false;
+    }
+    let previous = &tokens[index - 1];
+    previous.surface.chars().any(char::is_alphanumeric) && !is_function_word(previous)
+}
+
+/// Whether any of the token's conjugation properties is one of these form ids.
+fn has_form(token: &Token, forms: &[String]) -> bool {
+    props(token).any(|prop| {
+        forms
+            .iter()
+            .any(|form| Form::classify(&prop.form).id() == form)
+    })
+}
+
 /// What a gap will not step over. A grammar point does not span two sentences.
 const SENTENCE_END: &[&str] = &["。", "．", ".", "！", "!", "？", "?"];
+
+/// Marks after which a quotation, and so a sentence, begins.
+const OPENING_QUOTE: &[&str] = &["「", "『", "（", "("];
+
+/// A trailing-off pause. In dialogue the words after one start a new thought — a でも after
+/// one is "but", opening it — though a gap may still cross it, because a sentence can trail off
+/// and resume.
+const ELLIPSIS: &[&str] = &["…", "‥", "・・", "..."];
+
+/// Whether the token at `index` begins a sentence: the passage's first token, or the first after
+/// a sentence end, a line break, an opening quote or an ellipsis.
+///
+/// The same boundary [`Element::is_gap`] refuses to cross, read from the other side, and wider by
+/// the ellipsis. Trailing spaces are ignored because Ichiran keeps them on punctuation (`。 `), and
+/// a token that is nothing but spacing is looked through to the one before it.
+pub fn opens_sentence(tokens: &[Token], index: usize) -> bool {
+    let mut at = index;
+    while let Some(previous) = at.checked_sub(1).and_then(|before| tokens.get(before)) {
+        if previous.line_break == crate::model::LineBreak::Break {
+            return true;
+        }
+        let mark = previous.surface.trim_end();
+        if mark.is_empty() {
+            at -= 1;
+            continue;
+        }
+        return SENTENCE_END
+            .iter()
+            .chain(OPENING_QUOTE)
+            .chain(ELLIPSIS)
+            .any(|boundary| mark.ends_with(boundary));
+    }
+    true
+}
 
 /// A token's conjugation properties, including those of a compound's components —
 /// a compound's inflection lives on its parts, so ignoring them would make
@@ -343,10 +485,9 @@ impl Pack {
     pub fn matchable(&self) -> impl Iterator<Item = (&GrammarPattern, Rule<'_>)> {
         self.patterns.iter().flat_map(|pattern| {
             let elements = pattern
-                .match_tokens
-                .as_deref()
+                .token_rules()
                 .filter(|elements| !elements.is_empty())
-                .map(|elements| (pattern, Rule::Tokens(elements)));
+                .map(move |elements| (pattern, Rule::Tokens(elements)));
             let texts = pattern
                 .match_text
                 .iter()
@@ -505,6 +646,7 @@ mod tests {
                     surface_ends: Some("なさい".into()),
                     ..Default::default()
                 }]),
+                match_also: Vec::new(),
             }],
         };
         let found = |tokens: &[Token]| crate::grammar::matcher::find(tokens, &pack);
@@ -568,8 +710,8 @@ mod tests {
                 );
             }
             // A rule that references an unknown form id would never fire.
-            for element in pattern.match_tokens.iter().flatten() {
-                if let Some(form) = &element.form {
+            for element in pattern.token_rules().flatten() {
+                for form in element.form.iter().chain(&element.form_any) {
                     assert_ne!(
                         Form::classify(form),
                         Form::Unclassified,
@@ -665,7 +807,7 @@ mod tests {
             // entry's own examples and against an independent corpus
             // (`tests/pack_precision.rs`) before they land here. What this asserts now
             // is that whatever landed is well formed.
-            for element in pattern.match_tokens.iter().flatten() {
+            for element in pattern.token_rules().flatten() {
                 let (min, max) = element.repeat();
                 assert!(min <= max, "{}: min {min} exceeds max {max}", pattern.id);
                 // Spelt out rather than `is_none_or`, which needs Rust 1.82 — the
@@ -677,7 +819,7 @@ mod tests {
                 assert!(text_is_usable, "{}: empty text run", pattern.id);
             }
             // A rule of nothing but gaps matches every sentence in the language.
-            if let Some(elements) = &pattern.match_tokens {
+            for elements in pattern.token_rules() {
                 assert!(
                     elements.iter().any(|element| !element.is_gap()),
                     "{}: a rule must constrain something",

@@ -500,6 +500,37 @@
               "english": "Come round the corner for coffee."
             }
           ]
+        },
+        {
+          "id": "ni-adverb",
+          "label": "making an adverb",
+          "gloss": "After words like 本当, 一緒 and 絶対, に turns the word into an adverb: 本当に really, 一緒に together, 絶対に absolutely. It marks no place, time or receiver here.",
+          "dictionary": [],
+          "cues": [
+            {
+              "kind": "preceding_surface",
+              "surfaces": [
+                "本当",
+                "一緒",
+                "絶対",
+                "すぐ",
+                "最初",
+                "実際",
+                "最後"
+              ],
+              "weight": 4
+            }
+          ],
+          "examples": [
+            {
+              "japanese": "本当に美味しい。",
+              "english": "It tastes really yummy."
+            },
+            {
+              "japanese": "一緒に行きます。",
+              "english": "I'm coming with you."
+            }
+          ]
         }
       ]
     },

@@ -155,7 +155,7 @@ fn every_rule_fires_under_ichiran() {
         .iter()
         .chain(&pack::core().patterns)
     {
-        let ruled = !entry.match_text.is_empty() || entry.match_tokens.is_some();
+        let ruled = entry.is_ruled();
         if !ruled {
             continue;
         }
