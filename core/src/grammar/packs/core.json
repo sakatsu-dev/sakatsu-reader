@@ -62,8 +62,11 @@
           "english": "Go to Tokyo."
         }
       ],
-      "match_text": [
-        "に"
+      "match": [
+        {
+          "surface": "に",
+          "dict_form": "に"
+        }
       ]
     },
     {
@@ -866,7 +869,32 @@
       "match_text": [
         "かな",
         "かなあ",
-        "かなぁ"
+        "かなぁ",
+        "かなー"
+      ]
+    },
+    {
+      "id": "nanka",
+      "pattern": "なんか",
+      "title": "なんか",
+      "jlpt": "N3",
+      "explanation": "Casual speech, three ways. Before a verb it is なにか, something (なんか言った？). After a noun it plays the noun down: things like, the likes of (人参なんか). On its own it softens what follows: kind of, somehow (なんか腹減った).",
+      "examples": [
+        {
+          "japanese": "なんか言った？",
+          "english": "Did you say something?"
+        },
+        {
+          "japanese": "人参なんか大っ嫌い。",
+          "english": "I hate carrots."
+        },
+        {
+          "japanese": "なんか腹減ったな。",
+          "english": "I'm kind of hungry."
+        }
+      ],
+      "match_text": [
+        "なんか"
       ]
     },
     {

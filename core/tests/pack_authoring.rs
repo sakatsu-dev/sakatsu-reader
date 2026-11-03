@@ -99,6 +99,10 @@ const REVIEWED_OUT: &[(&str, &str)] = &[
         "なんか: mostly the filler 'somehow' (なんか服が油臭い), not 'things like'",
     ),
     (
+        "hanabira-n3-you-ni",
+        "ように: every ように, a quarter of them uses the entry does not teach (ようになる, ように見える, 〜ますように)",
+    ),
+    (
         "hanabira-n3-wa-mochiron-mo",
         "はもちろん: half are the adverb 'of course'",
     ),
@@ -270,6 +274,7 @@ fn probe_pack(text: &str) -> Pack {
             examples: Vec::new(),
             reference: None,
             match_tokens: None,
+            match_also: Vec::new(),
             match_text: vec![text.into()],
         }],
     }
@@ -459,10 +464,7 @@ fn derive_and_verify_match_rules() {
             .patterns
             .iter()
             .find(|p| p.id == r.id)
-            .is_some_and(|p| {
-                (p.match_tokens.is_some() || !p.match_text.is_empty())
-                    && !p.match_text.contains(&r.candidate)
-            })
+            .is_some_and(|p| p.is_ruled() && !p.match_text.contains(&r.candidate))
     };
     let eligible = |r: &Row| {
         // Every example confirms it, the curated pack does not already cover it, the
@@ -589,7 +591,7 @@ fn derive_and_verify_match_rules() {
     // the hand work it first looked like.
     let mut gap_rows = Vec::new();
     for entry in &imported.patterns {
-        if entry.match_tokens.is_some() || !entry.match_text.is_empty() {
+        if entry.is_ruled() {
             continue; // already ruled
         }
         // In order of appearance, repeats kept: `A とも B とも` is two slots, not one.

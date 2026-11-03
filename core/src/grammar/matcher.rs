@@ -230,6 +230,20 @@ fn matches_at(
     let Some((first, rest)) = parts.split_first() else {
         return Some((index, Vec::new()));
     };
+    // Position belongs to where the part starts, so it is settled before anything is consumed.
+    if let Some(wanted) = first.sentence_initial {
+        if super::pack::opens_sentence(tokens, index) != wanted {
+            return None;
+        }
+    }
+    if let Some(wanted) = first.follows_word {
+        if super::pack::follows_word(tokens, index) != wanted {
+            return None;
+        }
+    }
+    if index > 0 && first.not_after_any.contains(&tokens[index - 1].surface) {
+        return None;
+    }
 
     // A run part decides its own length; the repetition range does not apply. Any other
     // constraint on the same part describes the token the run ends on — that is what

@@ -140,6 +140,13 @@ pub enum Cue {
     PrecedingPos { classes: Vec<String>, weight: i32 },
     /// The token before is a number or a counter.
     PrecedingCounter { weight: i32 },
+    /// The token before is spelled as one of these.
+    ///
+    /// For a reading that belongs to particular words rather than to a class of them. に after
+    /// 本当, 一緒 or 絶対 is the case particle — UD Japanese-GSD tags it 格助詞 every time — but
+    /// it makes an adverb of the word, and nothing about the word's class says so: 本当 is an
+    /// ordinary noun, and so is 日本 in 日本に行く.
+    PrecedingSurface { surfaces: Vec<String>, weight: i32 },
     /// Whether the token before inflects — a verb or adjective rather than a thing.
     ///
     /// The one fact that separates に's destination from its purpose, because the verb
@@ -170,6 +177,7 @@ impl Cue {
             Cue::FollowedBy { weight, .. }
             | Cue::PrecedingPos { weight, .. }
             | Cue::PrecedingCounter { weight }
+            | Cue::PrecedingSurface { weight, .. }
             | Cue::PrecedingConjugates { weight, .. }
             | Cue::PrecedingCategory { weight, .. }
             | Cue::Predicate { weight, .. }
@@ -389,6 +397,16 @@ fn fires(cue: &Cue, tokens: &[Token], index: usize, categories: &Categories) -> 
         Cue::PrecedingCounter { .. } => {
             let token = before?;
             is_counted(&token.surface).then(|| format!("{} is an amount", token.surface))
+        }
+
+        Cue::PrecedingSurface { surfaces, .. } => {
+            let token = before?;
+            surfaces.contains(&token.surface).then(|| {
+                format!(
+                    "{} is one of the words に turns into an adverb",
+                    token.surface
+                )
+            })
         }
 
         Cue::PrecedingConjugates { conjugates, .. } => {

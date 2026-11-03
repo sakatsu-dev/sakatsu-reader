@@ -242,6 +242,12 @@
           "japanese": "彼女は有名だ。でも、とても謙虚です。",
           "english": "She is famous. However, she's very humble."
         }
+      ],
+      "match": [
+        {
+          "text": "でも",
+          "sentence_initial": true
+        }
       ]
     },
     {
@@ -316,8 +322,13 @@
           "english": "Which do you want to study, Japanese or Korean?"
         }
       ],
-      "match_text": [
-        "どっち"
+      "match": [
+        {
+          "text": "どっち"
+        },
+        {
+          "surface": "が"
+        }
       ]
     },
     {
@@ -542,6 +553,33 @@
           "japanese": "先生は親切に説明してくれる。",
           "english": "The teacher explains kindly."
         }
+      ],
+      "match_text": [
+        "確かに",
+        "別に",
+        "急に",
+        "勝手に"
+      ],
+      "match": [
+        {
+          "conjugated": false,
+          "not_surface_any": [
+            "よう",
+            "そう",
+            "みたい",
+            "そんな",
+            "こんな",
+            "あんな",
+            "どんな",
+            "あまり",
+            "様",
+            "風"
+          ]
+        },
+        {
+          "surface": "に",
+          "dict_form": "だ"
+        }
       ]
     },
     {
@@ -624,8 +662,43 @@
           "english": "The town becomes lively."
         }
       ],
-      "match_text": [
-        "なります"
+      "match": [
+        {
+          "conjugated": false,
+          "not_surface_any": [
+            "よう",
+            "そう",
+            "みたい",
+            "そんな",
+            "こんな",
+            "あんな",
+            "どんな",
+            "あまり",
+            "様",
+            "風"
+          ]
+        },
+        {
+          "surface": "に",
+          "dict_form": "だ"
+        },
+        {
+          "dict_form": "なる"
+        }
+      ],
+      "match_also": [
+        [
+          {
+            "surface_ends": "に",
+            "conjugated": false,
+            "not_surface_any": [
+              "に"
+            ]
+          },
+          {
+            "dict_form": "成る"
+          }
+        ]
       ]
     },
     {
@@ -1980,6 +2053,9 @@
           "japanese": "彼女はいつか夢を叶えることができると信じています。",
           "english": "I believe she can achieve her dream someday."
         }
+      ],
+      "match_text": [
+        "いつか"
       ]
     },
     {
@@ -2634,6 +2710,10 @@
           "japanese": "だれかのせいで、電気がきれました。",
           "english": "Because of someone, the electricity went out."
         }
+      ],
+      "match_text": [
+        "だれか",
+        "誰か"
       ]
     },
     {
@@ -2974,6 +3054,9 @@
           "japanese": "どこか静かな場所で勉強したい。",
           "english": "I want to study in a quiet place somewhere."
         }
+      ],
+      "match_text": [
+        "どこか"
       ]
     },
     {
@@ -3412,6 +3495,10 @@
           "japanese": "なにか助けが必要なら、言ってください。",
           "english": "If you need any help, please let me know."
         }
+      ],
+      "match_text": [
+        "なにか",
+        "何か"
       ]
     },
     {
@@ -3544,6 +3631,41 @@
           "japanese": "なんで今日は休みなの？",
           "english": "Why is today a holiday?"
         }
+      ],
+      "match": [
+        {
+          "surface": "なん",
+          "dict_form": "なん",
+          "not_after_any": [
+            "だけ",
+            "ばかり",
+            "ばっかり",
+            "ばっか",
+            "くらい",
+            "ぐらい",
+            "ほど"
+          ]
+        },
+        {
+          "surface": "で"
+        }
+      ],
+      "match_also": [
+        [
+          {
+            "surface": "なんで",
+            "follows_word": false,
+            "not_after_any": [
+              "だけ",
+              "ばかり",
+              "ばっかり",
+              "ばっか",
+              "くらい",
+              "ぐらい",
+              "ほど"
+            ]
+          }
+        ]
       ]
     },
     {
@@ -3571,6 +3693,10 @@
           "japanese": "この食堂では、なんでも美味しくて安い料理が出されます。",
           "english": "In this cafeteria, any dish served is delicious and inexpensive."
         }
+      ],
+      "match_text": [
+        "なんでも",
+        "何でも"
       ]
     },
     {
@@ -6317,16 +6443,32 @@
       ],
       "match": [
         {
-          "surface_ends": "そう"
+          "form_any": [
+            "continuative",
+            "adjective-stem"
+          ]
         },
         {
-          "surface_any": [
-            "だ",
-            "です",
-            "だった",
-            "でした"
-          ]
+          "surface": "そう"
         }
+      ],
+      "match_also": [
+        [
+          {
+            "surface_ends": "そう",
+            "not_surface_any": [
+              "そう"
+            ]
+          },
+          {
+            "surface_any": [
+              "だ",
+              "です",
+              "だった",
+              "でした"
+            ]
+          }
+        ]
       ]
     },
     {
@@ -7428,6 +7570,21 @@
           "japanese": "彼女は美人だ。それに、性格もいい。",
           "english": "She is beautiful. In addition, she has a good personality."
         }
+      ],
+      "match": [
+        {
+          "text": "それに",
+          "sentence_initial": true
+        },
+        {
+          "surface_any": [
+            "、",
+            "、 ",
+            "、  ",
+            ",",
+            "，"
+          ]
+        }
       ]
     },
     {
@@ -8404,6 +8561,12 @@
         {
           "japanese": "朝ごはんは作りたいけど、時間がない。",
           "english": "I want to make breakfast, but there's no time."
+        }
+      ],
+      "match": [
+        {
+          "text": "だけど",
+          "sentence_initial": true
         }
       ]
     },
@@ -14141,6 +14304,15 @@
           "japanese": "彼は野球をしたり、サッカーをしたりとかしています。",
           "english": "He spends his time playing baseball and soccer and such."
         }
+      ],
+      "match": [
+        {
+          "text": "とか",
+          "not_after_any": [
+            "なん",
+            "何"
+          ]
+        }
       ]
     },
     {
@@ -17834,6 +18006,9 @@
           "japanese": "私は一枚たりともその写真を持っていない。",
           "english": "I don't have even a single picture of it."
         }
+      ],
+      "match_text": [
+        "たりとも"
       ]
     },
     {
@@ -20581,6 +20756,17 @@
       ],
       "match_text": [
         "そうにない"
+      ],
+      "match": [
+        {
+          "form_any": [
+            "continuative",
+            "adjective-stem"
+          ]
+        },
+        {
+          "text": "そうにない"
+        }
       ]
     },
     {
@@ -20611,6 +20797,17 @@
       ],
       "match_text": [
         "そうもない"
+      ],
+      "match": [
+        {
+          "form_any": [
+            "continuative",
+            "adjective-stem"
+          ]
+        },
+        {
+          "text": "そうもない"
+        }
       ]
     },
     {

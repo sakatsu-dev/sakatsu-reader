@@ -743,7 +743,8 @@ pub fn from_analysis(analysis: Analysis, resources: Resources<'_>) -> StudyView 
         .iter()
         .map(grammar::breakdown)
         .collect::<Vec<_>>();
-    let patterns = grammar::patterns(&analysis);
+    // The reader's view: whole-token rules, and the grammar inside a fused or compound word.
+    let patterns = grammar::displayed(&analysis);
     let sentences = model::sentence_ranges(&analysis.tokens);
 
     // **One locked read for the whole passage, not one per token.** `statuses` takes the store's
