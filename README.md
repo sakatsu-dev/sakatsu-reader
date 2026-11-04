@@ -4,10 +4,10 @@ A desktop reading aid for Japanese study, built with Rust. Capture text from any
 screen, read with furigana, look up words, and explore meanings, conjugations, and grammar as
 you go.
 
-![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6)
-![Built with Tauri 2](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB)
-![Rust 1.92+](https://img.shields.io/badge/Rust-1.92%2B-B7410E)
-![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-8A63D2)
+[![Platform: Windows 10 and 11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6)](#getting-started)
+[![Built with Tauri 2](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB)](https://v2.tauri.app/)
+[![Rust 1.92+](https://img.shields.io/badge/Rust-1.92%2B-B7410E)](./DEVELOPMENT.md#development)
+[![Latest release](https://img.shields.io/github/v/release/sakatsu-dev/sakatsu-reader?include_prereleases&label=version&color=8A63D2)](https://github.com/sakatsu-dev/sakatsu-reader/releases)
 
 [Features](#features) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [Models and data](#models-and-data) ·
 [Troubleshooting](#troubleshooting) · [Development](./DEVELOPMENT.md) · [Licences](./LICENSING.md)
