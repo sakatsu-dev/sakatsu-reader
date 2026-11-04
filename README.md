@@ -111,7 +111,16 @@ CC BY-SA 3.0. See [LICENSING.md](./LICENSING.md).</sub>
 **Requirements:** Windows 10 or 11, 64-bit. The installer includes the WebView2 runtime the
 interface is drawn with, installs for the current user, and needs no administrator prompt.
 
-There is no published release yet. Build the installer from source (the prerequisites are in
+Download `SakatsuReader_<version>_x64-setup.exe` from the
+[latest release](https://github.com/sakatsu-dev/sakatsu-reader/releases/latest) and check it
+against the release's `SHA256SUMS` (`Get-FileHash` in PowerShell). The installer is not
+code-signed yet, so Windows may warn about an unknown publisher; choose **More info**, then
+**Run anyway**.
+
+To upgrade, run a newer installer over the installed version. Settings, saved words and
+downloaded resources are kept. The app does not update itself yet.
+
+To build the installer from source instead (the prerequisites are in
 [DEVELOPMENT.md](./DEVELOPMENT.md#development)):
 
 ```powershell
@@ -183,9 +192,10 @@ digest, and credited on the app's About page. [LICENSING.md](./LICENSING.md) has
   word shown with a ▶ button that the offline pronunciation pack does not have is checked with
   JapanesePod101 once, which sends the word and its reading, and pressing ▶ fetches its recording.
   A recognition endpoint you set receives each captured image, so one on another computer means
-  the image leaves this one. Anki is reached only on this computer. Update checks contact the
-  release service at most once a day when enabled, without captured text. Turn them off in
-  Settings > Updates. Downloading and installing an app update each require your choice.
+  the image leaves this one. Anki is reached only on this computer. In a build with updates
+  configured (current releases are not), update checks contact the release service at most once
+  a day when enabled, without captured text. Turn them off in Settings > Updates. Downloading
+  and installing an app update each require your choice.
 
 ## Development
 
