@@ -169,7 +169,7 @@ export const FIND = {
       label: "Update dictionary indexes",
       keywords:
         "dictionary import publisher automatic updates index indexes rebuild update dictionary definitions spellings redirect cross reference "
-        + "maintenance upgrade sequence gloss kanji offline local no download repair arrow",
+        + "maintenance upgrade sequence gloss kanji offline local no download repair arrow notifications notify popups dismiss dictionary notifications",
     },
     frequency: {
       label: "Order results by",
