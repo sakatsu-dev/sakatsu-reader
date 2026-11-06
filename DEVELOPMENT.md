@@ -689,6 +689,14 @@ publishers need consent before background access. Daily checks notify by default
 installation is opt-in. Unknown revision schemes and installations without a recorded version
 require manual approval. Models, WordNet, KanjiVG and KRADFILE remain release-pinned.
 
+Older word dictionaries without publisher metadata can be connected explicitly to Jitendex
+or JMnedict in Settings. The choice applies to that installed generation; an unrelated
+replacement does not inherit it. The normal checked update then installs publisher metadata
+along with the new entries. Saved word statuses remain independent of dictionary generations.
+Dictionary notifications have their own setting. Dismissal persists for the specific offered
+revision, while a later revision can notify again. Disabling notices leaves manual checks and
+the separate automatic-update preference available.
+
 Resource-backed accuracy checks continue using their frozen evaluation dictionaries. Updating
 an installed dictionary does not authorize refreshing a gold fixture or acceptance floor.
 

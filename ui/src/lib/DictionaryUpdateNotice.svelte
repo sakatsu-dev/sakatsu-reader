@@ -3,9 +3,23 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import type { DictionaryManagerSnapshot } from "../bindings";
+  import { errorMessage } from "./save-notice.js";
   let { onmanage }: { onmanage: () => void } = $props();
-  let available = $state("");
-  let dismissed = $state("");
+  let updates = $state<Record<string, string>>({});
+  let titles = $state<string[]>([]);
+  let dismissing = $state(false);
+  let error = $state("");
+  async function dismiss() {
+    dismissing = true;
+    error = "";
+    try {
+      await invoke("dictionary_dismiss_updates", { updates: { ...updates } });
+    } catch (thrown) {
+      error = errorMessage(thrown);
+    } finally {
+      dismissing = false;
+    }
+  }
   onMount(() => {
     let active = true;
     let request = 0;
@@ -14,12 +28,17 @@
       const generation = ++request;
       try {
         const result = await invoke<DictionaryManagerSnapshot>("dictionary_manager");
-        if (active && generation === request)
-          available = result.dictionaries
-            .filter((row) => row.available_revision)
-            .map((row) => `${row.id}:${row.available_revision}`)
-            .sort()
-            .join("|");
+        if (active && generation === request) {
+          const rows = result.preferences.notify_updates
+            ? result.dictionaries.filter(
+                (row) =>
+                  row.available_revision &&
+                  result.dismissed_updates[row.id] !== row.available_revision,
+              )
+            : [];
+          updates = Object.fromEntries(rows.map((row) => [row.id, row.available_revision!]));
+          titles = rows.map((row) => row.title);
+        }
       } catch {
         /* Detailed status and retry remain in Settings. */
       }
@@ -41,11 +60,12 @@
   });
 </script>
 
-{#if available && available !== dismissed}
+{#if titles.length}
   <aside class="dictionary-update-notice" role="status">
-    <span>Dictionary updates are available.</span>
+    <span>Dictionary updates available: {titles.join(", ")}.</span>
     <button class="control" onclick={onmanage}>Review dictionary updates</button>
-    <button class="control" onclick={() => (dismissed = available)}>Dismiss</button>
+    <button class="control" disabled={dismissing} onclick={dismiss}>Dismiss</button>
+    {#if error}<p role="alert">{error}</p>{/if}
   </aside>
 {/if}
 

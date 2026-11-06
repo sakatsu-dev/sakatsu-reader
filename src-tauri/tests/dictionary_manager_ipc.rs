@@ -293,4 +293,84 @@ fn management_round_trip() {
     std::fs::write(&gzip, b"broken gzip").unwrap();
     assert!(call(&app, "dictionary_preview", json!({"file":gzip})).is_err());
     assert_eq!(std::fs::read(kanji.join("kanjidic.tsv")).unwrap(), before);
+
+    // Older installations have neither publisher fields nor an archive receipt. Connecting is
+    // explicit and generation-bound; a display title alone must never establish the publisher.
+    let legacy =
+        sakatsu_core::dict::Dictionary::import(&original, &root.join("dictionaries/legacy"))
+            .unwrap();
+    let meta_path = legacy.root().join("meta.json");
+    let mut meta: Value = serde_json::from_slice(&std::fs::read(&meta_path).unwrap()).unwrap();
+    for key in ["isUpdatable", "indexUrl", "downloadUrl", "source_sha256"] {
+        meta.as_object_mut().unwrap().remove(key);
+    }
+    std::fs::write(&meta_path, serde_json::to_vec(&meta).unwrap()).unwrap();
+    drop(legacy);
+    let legacy_app = session(&root);
+    let snapshot = call(&legacy_app, "dictionary_manager", json!({})).unwrap();
+    let row = snapshot["dictionaries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == "words:legacy")
+        .unwrap();
+    assert!(row["source"].is_null());
+    for (generation, publisher) in [
+        (json!("stale"), "jitendex"),
+        (row["generation"].clone(), "unknown"),
+    ] {
+        assert!(call(
+            &legacy_app,
+            "dictionary_connect_publisher",
+            json!({"id":"words:legacy","generation":generation,"publisher":publisher})
+        )
+        .is_err());
+    }
+    call(
+        &legacy_app,
+        "dictionary_connect_publisher",
+        json!({"id":"words:legacy","generation":row["generation"],"publisher":"jitendex"}),
+    )
+    .unwrap();
+    call(
+        &legacy_app,
+        "dictionary_preferences",
+        json!({"preferences":{"check_updates":true,"automatic":true,"notify_updates":false}}),
+    )
+    .unwrap();
+    drop(legacy_app);
+    let restarted = session(&root);
+    let restored = call(&restarted, "dictionary_manager", json!({})).unwrap();
+    let row = restored["dictionaries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == "words:legacy")
+        .unwrap();
+    assert_eq!(row["source"], "https://jitendex.org/static/yomitan.json");
+    assert_eq!(row["consented"], true);
+    assert_eq!(restored["preferences"]["automatic"], true);
+    assert_eq!(restored["preferences"]["notify_updates"], false);
+    // A new unrelated import at that stable ID cannot inherit the previous connection.
+    let replacement =
+        sakatsu_core::dict::Dictionary::import(&original, &root.join("dictionaries/legacy"))
+            .unwrap();
+    std::fs::write(
+        replacement.root().join("meta.json"),
+        serde_json::to_vec(&meta).unwrap(),
+    )
+    .unwrap();
+    drop(replacement);
+    let replaced = session(&root);
+    let snapshot = call(&replaced, "dictionary_manager", json!({})).unwrap();
+    let row = snapshot["dictionaries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == "words:legacy")
+        .unwrap();
+    assert!(
+        row["source"].is_null(),
+        "a connection cannot survive an unrelated replacement"
+    );
 }

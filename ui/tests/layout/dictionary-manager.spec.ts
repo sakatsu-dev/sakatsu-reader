@@ -9,6 +9,73 @@ async function settings(page: Page, state = "ready") {
 }
 const panel = (page: Page) => page.locator(".dictionary-manager");
 
+test("older dictionaries connect to an explicitly chosen publisher", async ({ page }) => {
+  await settings(page, "legacy");
+  const connect = panel(page).getByRole("button", { name: "Connect official publisher" });
+  await expect(connect).toBeDisabled();
+  await panel(page)
+    .getByRole("combobox", { name: "Publisher for Example dictionary [2026-10-03]" })
+    .selectOption("jitendex");
+  await expect(
+    panel(page).getByText("Update source: https://jitendex.org/static/yomitan.json", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await connect.click();
+  await expect(connect).toHaveCount(0);
+  await panel(page)
+    .getByRole("button", { name: "Check for dictionary updates", exact: true })
+    .click();
+  await expect(panel(page).getByRole("button", { name: "Update to 2026.10.18.0" })).toBeVisible();
+});
+
+test("dismissed revisions stay quiet after reload while a new revision notifies", async ({
+  page,
+}) => {
+  await page.goto("/?qa=analysis&manager=updates");
+  const notice = page.locator(".dictionary-update-notice");
+  await expect(notice).toContainText("Example dictionary");
+  await notice.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await expect(notice).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Reference", exact: true })).toBeVisible();
+  await expect(notice).toHaveCount(0);
+  await page.goto("/?qa=analysis&manager=updates&revision=2026.11.06.0");
+  await expect(notice).toBeVisible();
+});
+
+test("notification preference persists without hiding manual update controls", async ({ page }) => {
+  await settings(page, "updates");
+  const notify = panel(page).getByRole("checkbox", {
+    name: "Show dictionary update notifications",
+  });
+  await notify.uncheck();
+  await expect(page.locator(".dictionary-update-notice")).toHaveCount(0);
+  await expect(panel(page).getByRole("button", { name: "Update to 2026.10.18.0" })).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".dictionary-update-notice")).toHaveCount(0);
+  await openSettings(page);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(notify).not.toBeChecked();
+  await notify.check();
+  await expect(page.locator(".dictionary-update-notice")).toBeVisible();
+});
+
+test("failed dismissal remains visible and can be retried", async ({ page }) => {
+  await page.goto("/?qa=analysis&manager=updates");
+  const notice = page.locator(".dictionary-update-notice");
+  await expect(notice).toBeVisible();
+  await page.evaluate(() =>
+    (
+      window as unknown as { __SAKATSU_QA__: { failNext: (command: string) => void } }
+    ).__SAKATSU_QA__.failNext("dictionary_dismiss_updates"),
+  );
+  await notice.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await expect(notice.getByRole("alert")).toBeVisible();
+  await notice.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await expect(notice).toHaveCount(0);
+});
+
 test("import controls describe dictionary files without application-specific branding", async ({
   page,
 }) => {
@@ -148,6 +215,23 @@ for (const theme of ["dark", "light"]) {
         .getByRole("button", { name: "Choose dictionary file" })
         .scrollIntoViewIfNeeded();
       await page.screenshot({ path: testInfo.outputPath("dictionary-manager-import.png") });
+    });
+    test(`legacy publisher and notification controls wrap at ${px}px in ${theme}`, async ({
+      page,
+    }, testInfo) => {
+      await settings(page, `legacy&theme=${theme}`);
+      await page.evaluate((px) => (document.documentElement.style.fontSize = `${px}px`), px);
+      await panel(page)
+        .getByRole("checkbox", { name: "Show dictionary update notifications" })
+        .scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath("notification-preferences.png") });
+      await panel(page)
+        .getByRole("combobox", { name: "Publisher for Example dictionary [2026-10-03]" })
+        .scrollIntoViewIfNeeded();
+      expect(
+        await panel(page).evaluate((element) => element.scrollWidth > element.clientWidth + 1),
+      ).toBe(false);
+      await page.screenshot({ path: testInfo.outputPath("legacy-publisher.png") });
     });
   }
 }

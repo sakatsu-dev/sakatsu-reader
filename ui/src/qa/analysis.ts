@@ -965,10 +965,14 @@ export async function installAnalysisQa(params: URLSearchParams) {
   let upkeepBuilt = false;
   let upkeepReadable = true;
   const managerState = params.get("manager") ?? "ready";
+  const savedDictionaryPreferences = JSON.parse(sessionStorage.getItem("qa-dictionary-preferences") ?? "null");
   const manager: import("../bindings").DictionaryManagerSnapshot = {
-    preferences: { check_updates: true, automatic: false }, operation: null,
+    preferences: savedDictionaryPreferences ?? { check_updates: true, automatic: false, notify_updates: true },
+    dismissed_updates: JSON.parse(sessionStorage.getItem("qa-dismissed-dictionary-updates") ?? "{}"), operation: null,
     dictionaries: managerState === "empty" ? [] : [{ id: "fixture", kind: "words", title: "Example dictionary [2026-10-03]", revision: "2026.10.03.0", generation: "fixture-generation", source: "https://example.org/index.json", home: "https://example.org/", entries: 42, sha256: null, consented: false, phase: "unchecked", detail: "", available_revision: null }],
   };
+  if (managerState === "legacy") manager.dictionaries[0].source = null;
+  if (managerState === "updates") manager.dictionaries[0].available_revision = params.get("revision") ?? "2026.10.18.0";
   mockWindows("main");
   let activeText = "";
   let studyCalls = 0;
@@ -1295,6 +1299,20 @@ const optionalCatalog = [
         }
         case "dictionary_preferences":
           manager.preferences = args.preferences as typeof manager.preferences;
+          sessionStorage.setItem("qa-dictionary-preferences", JSON.stringify(manager.preferences));
+          void emit("dictionary-manager-changed", null);
+          return null;
+        case "dictionary_dismiss_updates":
+          for (const [id, revision] of Object.entries(args.updates as Record<string, string>)) {
+            if (manager.dictionaries.some((row) => row.id === id && row.available_revision === revision)) manager.dismissed_updates[id] = revision;
+          }
+          sessionStorage.setItem("qa-dismissed-dictionary-updates", JSON.stringify(manager.dismissed_updates));
+          void emit("dictionary-manager-changed", null);
+          return null;
+        case "dictionary_connect_publisher":
+          manager.dictionaries[0].source = "https://jitendex.org/static/yomitan.json";
+          manager.dictionaries[0].consented = true;
+          void emit("dictionary-manager-changed", null);
           return null;
         case "dictionary_source_consent":
           manager.dictionaries[0].consented = Boolean(args.allowed);

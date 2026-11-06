@@ -25,6 +25,22 @@ struct Saved {
     preferences: DictionaryPreferences,
     last_check: u64,
     consent: BTreeMap<String, String>,
+    connections: BTreeMap<String, PublisherConnection>,
+    dismissed_updates: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct PublisherConnection {
+    publisher: String,
+    generation: String,
+}
+
+fn official_publisher(publisher: &str) -> Result<(&'static str, &'static str), String> {
+    match publisher {
+        "jitendex" => Ok(("https://jitendex.org/static/yomitan.json", "https://github.com/stephenmk/stephenmk.github.io/releases/latest/download/jitendex-yomitan.zip")),
+        "jmnedict" => Ok(("https://github.com/yomidevs/jmdict-yomitan/releases/latest/download/JMnedict.json", "https://github.com/yomidevs/jmdict-yomitan/releases/latest/download/JMnedict.zip")),
+        _ => Err("Choose Jitendex or JMnedict as the official publisher.".into()),
+    }
 }
 
 struct Temporary(PathBuf);
@@ -197,7 +213,16 @@ pub fn dictionary_manager<R: tauri::Runtime>(
         let physical_id = dictionary.installed_as();
         let id = format!("words:{physical_id}");
         let meta = dictionary.meta();
-        let route = source(&physical_id, meta);
+        let route = source(&physical_id, meta).or_else(|| {
+            // A connection is an explicit replacement choice, not inferred dictionary identity.
+            // Bind it to this generation so a later unrelated import never inherits its consent.
+            let connection = saved.connections.get(&id)?;
+            if connection.generation != stamp(dictionary) {
+                return None;
+            }
+            let (index, download) = official_publisher(&connection.publisher).ok()?;
+            Some((index.into(), download.into(), false))
+        });
         let endpoint = route.as_ref().map(|r| r.0.clone());
         let consented = route
             .as_ref()
@@ -262,6 +287,7 @@ pub fn dictionary_manager<R: tauri::Runtime>(
     }
     Ok(DictionaryManagerSnapshot {
         preferences: saved.preferences,
+        dismissed_updates: saved.dismissed_updates,
         dictionaries: rows,
         operation: inner.operation.clone(),
     })
@@ -284,6 +310,68 @@ pub fn dictionary_preferences<R: tauri::Runtime>(
     if !automatic && inner.active_automatic {
         inner.cancel.store(true, Ordering::Release);
     }
+    drop(inner);
+    emit(&app);
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub fn dictionary_connect_publisher<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    id: String,
+    generation: String,
+    publisher: String,
+) -> Result<(), String> {
+    let (index, _) = official_publisher(&publisher)?;
+    let row = dictionary_manager(app.clone())?
+        .dictionaries
+        .into_iter()
+        .find(|row| row.id == id && row.kind == ResourceKind::Words)
+        .ok_or("The word dictionary is no longer installed.")?;
+    if row.generation != generation {
+        return Err("The dictionary changed. Refresh before connecting its publisher.".into());
+    }
+    if row.source.is_some() {
+        return Err("This dictionary already has a publisher. Use its update controls.".into());
+    }
+    let state = manager_state(&app);
+    let mut inner = lock(&state);
+    let mut saved = load(&mut inner)?;
+    saved.connections.insert(
+        id.clone(),
+        PublisherConnection {
+            publisher,
+            generation,
+        },
+    );
+    saved.consent.insert(id.clone(), index.into());
+    save(&mut inner, saved)?;
+    inner.candidates.remove(&id);
+    inner.status.remove(&id);
+    drop(inner);
+    emit(&app);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn dictionary_dismiss_updates<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    updates: BTreeMap<String, String>,
+) -> Result<(), String> {
+    let state = manager_state(&app);
+    let mut inner = lock(&state);
+    let mut saved = load(&mut inner)?;
+    for (id, revision) in updates {
+        // An old banner cannot dismiss a different revision discovered in the meantime.
+        if inner
+            .candidates
+            .get(&id)
+            .is_some_and(|candidate| candidate.revision == revision)
+        {
+            saved.dismissed_updates.insert(id, revision);
+        }
+    }
+    save(&mut inner, saved)?;
     drop(inner);
     emit(&app);
     Ok(())
@@ -1169,6 +1257,17 @@ pub fn start<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn old_preferences_keep_notifications_enabled_and_do_not_enable_automatic_updates() {
+        let saved: Saved = serde_json::from_str(
+            r#"{"preferences":{"check_updates":true,"automatic":false},"last_check":100}"#,
+        )
+        .unwrap();
+        assert!(saved.preferences.notify_updates);
+        assert!(!saved.preferences.automatic);
+        assert!(saved.dismissed_updates.is_empty());
+        assert!(saved.connections.is_empty());
+    }
     #[test]
     fn daily_check_is_due_once_and_respects_disabled_and_backward_clocks() {
         let mut saved = Saved {

@@ -358,6 +358,8 @@ macro_rules! reader_commands {
             $crate::commands::dictionary_upkeep,
             $crate::dictionary_manager::dictionary_manager,
             $crate::dictionary_manager::dictionary_preferences,
+            $crate::dictionary_manager::dictionary_connect_publisher,
+            $crate::dictionary_manager::dictionary_dismiss_updates,
             $crate::dictionary_manager::dictionary_source_consent,
             $crate::dictionary_manager::dictionary_preview,
             $crate::dictionary_manager::dictionary_import,

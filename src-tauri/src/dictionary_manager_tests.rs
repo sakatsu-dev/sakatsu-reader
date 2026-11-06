@@ -97,9 +97,15 @@ fn metadata(revision: &str) -> Vec<u8> {
     json!({"title":format!("New dated title {revision}"),"revision":revision,"format":3,"isUpdatable":true,"indexUrl":INDEX,"downloadUrl":DOWNLOAD}).to_string().into_bytes()
 }
 fn archive(path: &Path, revision: &str, term: &str) -> Vec<u8> {
+    archive_from(path, revision, term, INDEX, DOWNLOAD)
+}
+fn archive_from(path: &Path, revision: &str, term: &str, index: &str, download: &str) -> Vec<u8> {
+    let mut meta: Value = serde_json::from_slice(&metadata(revision)).unwrap();
+    meta["indexUrl"] = json!(index);
+    meta["downloadUrl"] = json!(download);
     let mut zip = zip::ZipWriter::new(std::fs::File::create(path).unwrap());
     for (name, bytes) in [
-        ("index.json", metadata(revision)),
+        ("index.json", serde_json::to_vec(&meta).unwrap()),
         (
             "term_bank_1.json",
             json!([[
@@ -231,6 +237,22 @@ pub fn publisher_round_trip() {
         checked["dictionaries"][0]["available_revision"],
         "2026.10.28.0"
     );
+    call(
+        &app,
+        "dictionary_dismiss_updates",
+        json!({"updates":{"words:fixture":"2026.10.28.0"}}),
+    )
+    .unwrap();
+    assert_eq!(
+        call(&app, "dictionary_manager", json!({})).unwrap()["dismissed_updates"]["words:fixture"],
+        "2026.10.28.0"
+    );
+    // Recreate the manager state from disk: dismissal is not merely a UI/session variable.
+    let mut restored = Inner::default();
+    assert_eq!(
+        load(&mut restored).unwrap().dismissed_updates["words:fixture"],
+        "2026.10.28.0"
+    );
     let updated = update(&app);
     assert_eq!(updated["operation"]["phase"], "complete", "{updated}");
     assert_eq!(updated["dictionaries"][0]["id"], "words:fixture");
@@ -247,6 +269,33 @@ pub fn publisher_round_trip() {
     // A moving download must agree with the check; it cannot silently install another version.
     reply(INDEX, metadata("2026.10.29.0"));
     check(&app);
+    call(
+        &app,
+        "dictionary_dismiss_updates",
+        json!({"updates":{"words:fixture":"2026.10.28.0"}}),
+    )
+    .unwrap();
+    let newer = call(&app, "dictionary_manager", json!({})).unwrap();
+    assert_eq!(
+        newer["dictionaries"][0]["available_revision"],
+        "2026.10.29.0"
+    );
+    assert_ne!(
+        newer["dismissed_updates"]["words:fixture"], newer["dictionaries"][0]["available_revision"],
+        "an old banner must not dismiss a newer offer"
+    );
+    // The backend refuses it too: a revision that is not on offer is never recorded.
+    call(
+        &app,
+        "dictionary_dismiss_updates",
+        json!({"updates":{"words:fixture":"2026.10.27.0"}}),
+    )
+    .unwrap();
+    assert_eq!(
+        call(&app, "dictionary_manager", json!({})).unwrap()["dismissed_updates"]["words:fixture"],
+        "2026.10.28.0",
+        "a revision that is not on offer is not recorded as dismissed"
+    );
     assert_eq!(update(&app)["operation"]["phase"], "failed");
     assert_eq!(
         call(&app, "dictionary_manager", json!({})).unwrap()["dictionaries"][0]["revision"],
@@ -390,4 +439,93 @@ pub fn publisher_round_trip() {
         Ok((302, Some("/index.json".into()), Vec::new())),
     );
     assert!(request(redirect).is_ok());
+
+    // Legacy connections use the ordinary download/publication path for either publisher.
+    for publisher in ["jitendex", "jmnedict"] {
+        let physical = format!("legacy-{publisher}");
+        let id = format!("words:{physical}");
+        let dict = Dictionary::import(&old, &root.join("dictionaries").join(&physical)).unwrap();
+        let mut meta: Value =
+            serde_json::from_slice(&std::fs::read(dict.root().join("meta.json")).unwrap()).unwrap();
+        for key in ["isUpdatable", "indexUrl", "downloadUrl", "source_sha256"] {
+            meta.as_object_mut().unwrap().remove(key);
+        }
+        std::fs::write(
+            dict.root().join("meta.json"),
+            serde_json::to_vec(&meta).unwrap(),
+        )
+        .unwrap();
+        drop(dict);
+        adopt(app.handle(), &ResourceKind::Words);
+        let before = call(&app, "dictionary_manager", json!({})).unwrap();
+        let row = before["dictionaries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == id)
+            .unwrap();
+        assert!(row["source"].is_null());
+        call(
+            &app,
+            "dictionary_connect_publisher",
+            json!({"id":id,"generation":row["generation"],"publisher":publisher}),
+        )
+        .unwrap();
+        let (index, download) = official_publisher(publisher).unwrap();
+        let bytes = archive_from(
+            &root.join(format!("{physical}.zip")),
+            "2026.11.06.0",
+            "upgraded",
+            index,
+            download,
+        );
+        let mut offered: Value = serde_json::from_slice(&metadata("2026.11.06.0")).unwrap();
+        offered["indexUrl"] = json!(index);
+        offered["downloadUrl"] = json!(download);
+        reply(index, serde_json::to_vec(&offered).unwrap());
+        check(&app);
+        reply(download, b"invalid archive".to_vec());
+        let failed = wait(
+            &app,
+            call(&app, "dictionary_update", json!({"id":id})).unwrap(),
+        );
+        assert_eq!(failed["operation"]["phase"], "failed");
+        assert_eq!(
+            failed["dictionaries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["id"] == id)
+                .unwrap()["generation"],
+            row["generation"]
+        );
+        reply(download, bytes);
+        let updated = wait(
+            &app,
+            call(&app, "dictionary_update", json!({"id":id})).unwrap(),
+        );
+        assert_eq!(updated["operation"]["phase"], "complete", "{updated}");
+        let row = updated["dictionaries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == id)
+            .unwrap();
+        assert_eq!(row["revision"], "2026.11.06.0");
+        assert_eq!(row["source"], index);
+        assert_eq!(row["consented"], true);
+        assert_eq!(
+            app.state::<DictionaryState>()
+                .0
+                .now()
+                .dictionaries
+                .iter()
+                .find(|d| d.installed_as() == physical)
+                .unwrap()
+                .lookup("upgraded")
+                .unwrap()
+                .len(),
+            1
+        );
+    }
 }

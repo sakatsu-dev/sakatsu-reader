@@ -19,6 +19,11 @@
   let target = $state("");
   let dropArea = $state<HTMLDivElement>();
   let over = $state(false);
+  let publishers = $state<Record<string, string>>({});
+  const publisherSources: Record<string, string> = {
+    jitendex: "https://jitendex.org/static/yomitan.json",
+    jmnedict: "https://github.com/yomidevs/jmdict-yomitan/releases/latest/download/JMnedict.json",
+  };
   let request = 0;
   let previewRequest = 0;
   let disposed = false;
@@ -157,6 +162,16 @@
       <label
         ><input
           type="checkbox"
+          checked={snapshot.preferences.notify_updates}
+          onchange={(event) => preferences({ notify_updates: event.currentTarget.checked })}
+        /> Show dictionary update notifications</label
+      >
+      <p class="note">
+        Dismissed revisions stay quiet across restarts. Updates remain available here.
+      </p>
+      <label
+        ><input
+          type="checkbox"
           checked={snapshot.preferences.check_updates}
           onchange={(event) => preferences({ check_updates: event.currentTarget.checked })}
         /> Check for dictionary updates daily</label
@@ -218,6 +233,34 @@
                   ? "Checking publisher…"
                   : row.detail}
             </p>
+            {#if row.kind === "words" && !row.source}
+              <p class="note">
+                Choose this dictionary's official publisher to enable updates. An update replaces
+                its entries and keeps your saved word statuses.
+              </p>
+              <label>
+                Publisher for {row.title}
+                <select class="control" bind:value={publishers[row.id]} disabled={busy}>
+                  <option value="">Choose publisher</option>
+                  <option value="jitendex">Jitendex · jitendex.org</option>
+                  <option value="jmnedict">JMnedict · yomidevs</option>
+                </select>
+              </label>
+              {#if publisherSources[publishers[row.id]]}
+                <p class="endpoint">Update source: {publisherSources[publishers[row.id]]}</p>
+                <p class="note">Connecting allows update checks from this publisher.</p>
+              {/if}
+              <button
+                class="control"
+                disabled={busy || !publishers[row.id]}
+                onclick={() =>
+                  act("dictionary_connect_publisher", {
+                    id: row.id,
+                    generation: row.generation,
+                    publisher: publishers[row.id],
+                  })}>Connect official publisher</button
+              >
+            {/if}
             {#if row.available_revision}
               <button
                 class="control"
@@ -308,6 +351,11 @@
   .endpoint {
     font-size: 0.85em;
     overflow-wrap: anywhere;
+  }
+  .dictionaries select {
+    display: block;
+    max-width: 100%;
+    margin: var(--gap-sm) 0;
   }
   .drop-area,
   .preview {

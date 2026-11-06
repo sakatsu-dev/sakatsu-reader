@@ -44,6 +44,7 @@ pub struct KanjiSource {
 pub struct DictionaryPreferences {
     pub check_updates: bool,
     pub automatic: bool,
+    pub notify_updates: bool,
 }
 
 impl Default for DictionaryPreferences {
@@ -51,6 +52,7 @@ impl Default for DictionaryPreferences {
         Self {
             check_updates: true,
             automatic: false,
+            notify_updates: true,
         }
     }
 }
@@ -87,6 +89,7 @@ pub struct DictionaryOperation {
 #[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 pub struct DictionaryManagerSnapshot {
     pub preferences: DictionaryPreferences,
+    pub dismissed_updates: std::collections::BTreeMap<String, String>,
     pub dictionaries: Vec<ManagedDictionary>,
     pub operation: Option<DictionaryOperation>,
 }
