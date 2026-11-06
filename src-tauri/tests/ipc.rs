@@ -564,6 +564,7 @@ fn settings_round_trip_through_the_store() {
     let defaults = invoke_with(dir, "settings", serde_json::json!({})).expect("settings");
     assert_eq!(defaults["furigana"], true);
     assert_eq!(defaults["preload_ichiran_on_startup"], true);
+    assert_eq!(defaults["preload_ocr_on_startup"], true);
     assert_eq!(defaults["mark_seen_on_focus"], true);
     assert_eq!(defaults["focus_before_open"], true);
     assert_eq!(defaults["show_frequency_source"], false);
@@ -579,6 +580,7 @@ fn settings_round_trip_through_the_store() {
             "settings": {
                 "furigana": false,
                 "preload_ichiran_on_startup": false,
+                "preload_ocr_on_startup": false,
                 "mark_seen_on_focus": false,
                 "focus_before_open": false,
                 "split_ratio": 0.6,
@@ -592,6 +594,7 @@ fn settings_round_trip_through_the_store() {
     let saved = invoke_with(dir, "settings", serde_json::json!({})).expect("settings");
     assert_eq!(saved["furigana"], false);
     assert_eq!(saved["preload_ichiran_on_startup"], false);
+    assert_eq!(saved["preload_ocr_on_startup"], false);
     assert_eq!(saved["mark_seen_on_focus"], false);
     assert_eq!(saved["focus_before_open"], false);
     assert_eq!(saved["split_ratio"], 0.6);

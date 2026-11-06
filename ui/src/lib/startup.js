@@ -2,7 +2,7 @@
 /** @typedef {import('../model').EngineStatus} EngineStatus */
 /** @typedef {{id: string, name: string, state: 'loading'|'ready'|'deferred'|'attention', detail: string}} StartupRow */
 
-/** @param {{settings: boolean, resources: boolean, needsSetup: boolean, settingsFailed?: boolean, resourcesFailed?: boolean, engines: EngineStatus[]|null, error?: string}} input
+/** @param {{settings: boolean, resources: boolean, needsSetup: boolean, settingsFailed?: boolean, resourcesFailed?: boolean, ocrPreload?: boolean, engines: EngineStatus[]|null, error?: string}} input
  * @returns {StartupRow[]}
  */
 export function startupRows(input) {
@@ -58,12 +58,19 @@ export function startupRows(input) {
     } else if (engine.state === "not_installed" || engine.loaded === "stub") {
       rows.push(row(id, name, "attention", "Setup needed"));
     } else if (engine.state === "not_loaded") {
+      // Unloaded by choice is deferred, like Ichiran without its preload; only an OCR that was
+      // meant to load and did not is worth stopping the reader for.
+      const deferred = role === "analysis" || input.ocrPreload === false;
       rows.push(
         row(
           id,
           name,
-          role === "analysis" ? "deferred" : "attention",
-          role === "analysis" ? "Starts on first use" : "Not loaded; capture can start it",
+          deferred ? "deferred" : "attention",
+          role === "analysis"
+            ? "Starts on first use"
+            : deferred
+              ? "Starts on first capture"
+              : "Not loaded; capture can start it",
         ),
       );
     } else if (engine.state === "ready") {

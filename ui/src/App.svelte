@@ -654,6 +654,7 @@
   let quiet = $state(true);
   let ichiranServer = $state(true);
   let preloadIchiran = $state(true);
+  let preloadOcr = $state(true);
   let checkUpdatesOnStartup = $state(true);
   let logging = $state(false);
   let collectSentences = $state(false);
@@ -957,6 +958,7 @@
       quiet = saved.quiet;
       ichiranServer = saved.ichiran_server;
       preloadIchiran = saved.preload_ichiran_on_startup;
+      preloadOcr = saved.preload_ocr_on_startup;
       checkUpdatesOnStartup = saved.check_updates_on_startup;
       logging = saved.log;
       collectSentences = saved.collect_sentences;
@@ -1781,6 +1783,7 @@
       quiet,
       ichiran_server: ichiranServer,
       preload_ichiran_on_startup: preloadIchiran,
+      preload_ocr_on_startup: preloadOcr,
       check_updates_on_startup: checkUpdatesOnStartup,
       log: logging,
       collect_sentences: collectSentences,
@@ -1855,6 +1858,7 @@
       quiet,
       ichiran_server: ichiranServer,
       preload_ichiran_on_startup: preloadIchiran,
+      preload_ocr_on_startup: preloadOcr,
       check_updates_on_startup: checkUpdatesOnStartup,
       log: logging,
       collect_sentences: collectSentences,
@@ -2857,7 +2861,7 @@
   {#if !startupDone}
     <Startup settings={settingsLoaded} settingsFailed={startupSettingsFailed}
       resources={setup.loaded} resourcesFailed={Boolean(setup.error)}
-      needsSetup={Boolean(setup.snapshot && !setup.snapshot.required_ready)}
+      needsSetup={Boolean(setup.snapshot && !setup.snapshot.required_ready)} ocrPreload={preloadOcr}
       {titlebarHeight} animationMs={settingsLoaded ? animationMs : 0} oncontinue={() => { startupDone = true; }} />
   {/if}
   <div class="workspace" inert={!startupDone} style:z-index={startupDone ? undefined : 0}>
@@ -3103,6 +3107,7 @@
     bind:quiet
     bind:ichiranServer
     bind:preloadIchiran
+    bind:preloadOcr
     bind:checkUpdatesOnStartup
     oninstallupdate={() => settingsController.beforeExit(() => invoke<UpdateStatus>("update_install"))}
     bind:logging

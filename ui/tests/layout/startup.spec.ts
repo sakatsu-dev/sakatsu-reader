@@ -73,6 +73,12 @@ test("an OCR initialization problem is shown instead of claiming readiness", asy
   await expect(startup(page)).toHaveCount(0);
 });
 
+test("an OCR left unloaded by choice does not hold the intro for attention", async ({ page }) => {
+  // The same unloaded engine as the test above, which stops for attention; here it was a choice.
+  await page.goto("/?qa=analysis&startup=unavailable&ocrpreload=off");
+  await expect(startup(page)).toHaveCount(0);
+});
+
 test("loading stroke follows the logo outline without rotating it", async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/?qa=analysis&startup=loading&motion=on");

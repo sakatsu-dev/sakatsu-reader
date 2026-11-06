@@ -72,6 +72,7 @@ function settings(params: URLSearchParams): Settings {
     quiet: true,
     ichiran_server: false,
     preload_ichiran_on_startup: params.get("preload") !== "off",
+    preload_ocr_on_startup: params.get("ocrpreload") !== "off",
     check_updates_on_startup: true,
     // `long-paths` turns both records on, so their paths and the corpus warning are on screen.
     log: params.get("fixture") === "long-paths",

@@ -210,6 +210,11 @@ export const FIND = {
       label: "Loaded model",
       keywords: "loaded engine status installed model",
     },
+    preload: {
+      label: "Preload OCR at startup",
+      keywords:
+        "preload ocr recognition startup launch background warm first capture load vram gpu graphics memory paddleocr-vl manga paddle",
+    },
     prepare: {
       label: "Image preparation",
       keywords:

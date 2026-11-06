@@ -2809,6 +2809,9 @@ pub struct OcrState {
     /// Set when the reader unloads the engine: the warm-up leaves it unloaded until something
     /// explicitly asks for recognition, which clears it.
     held_back: AtomicBool,
+    /// [`Settings::preload_ocr_on_startup`]. Off, no warm-up runs — at startup or after a
+    /// settings change — and a capture is the only thing that loads an engine.
+    preload: AtomicBool,
 }
 
 /// The parts of the recognition setup that come from settings rather than from disk.
@@ -2832,6 +2835,7 @@ impl OcrState {
             warming: AtomicBool::new(false),
             last: Default::default(),
             held_back: AtomicBool::new(false),
+            preload: AtomicBool::new(settings.preload_ocr_on_startup),
         }
     }
 
@@ -2855,6 +2859,9 @@ impl OcrState {
     /// object held here is no longer what the settings ask for. Splitting them into
     /// separate setters is how one of them ends up forgetting to drop the cache.
     pub fn configure(&self, settings: &Settings) {
+        // Before anything is invalidated, so the warm-up the save starts next already sees it.
+        self.preload
+            .store(settings.preload_ocr_on_startup, Ordering::Release);
         let mut changed = false;
 
         {
@@ -2919,6 +2926,7 @@ impl OcrState {
             warming: AtomicBool::new(false),
             last: Default::default(),
             held_back: AtomicBool::new(false),
+            preload: AtomicBool::new(true),
         }
     }
 
@@ -2936,7 +2944,8 @@ impl OcrState {
     }
 
     fn begin_warming(&self, startup: bool) -> bool {
-        if (!startup && !self.wants_warming())
+        if !self.preload.load(Ordering::Acquire)
+            || (!startup && !self.wants_warming())
             || self.is_ready()
             || self.held_back.load(Ordering::Acquire)
         {
@@ -4344,6 +4353,46 @@ mod ocr_state_tests {
         assert!(!state.begin_warming(true));
         let loaded = OcrState::with_engine(Arc::new(StubOcr));
         assert!(!loaded.begin_warming(true));
+    }
+
+    #[test]
+    fn a_disabled_preload_refuses_every_warm_up_until_it_is_turned_back_on() {
+        let off = Settings {
+            preload_ocr_on_startup: false,
+            ocr: OcrChoice::Vlm,
+            ..Settings::default()
+        };
+        let state = OcrState::new(PathBuf::new(), PathBuf::new(), &off);
+        assert!(!state.begin_warming(true), "no startup warm-up");
+        assert!(
+            !state.begin_warming(false),
+            "no warm-up after a settings save, even for PaddleOCR-VL"
+        );
+        assert_eq!(
+            state.status().state,
+            sakatsu_core::runtime_status::EngineState::NotLoaded,
+            "deferred, not loading"
+        );
+        state.configure(&Settings {
+            preload_ocr_on_startup: true,
+            ..off
+        });
+        assert!(state.begin_warming(false), "a save that turns it on applies it");
+    }
+
+    #[test]
+    fn a_disabled_preload_still_loads_on_an_explicit_request() {
+        let state = OcrState::new(
+            PathBuf::new(),
+            PathBuf::new(),
+            &Settings {
+                preload_ocr_on_startup: false,
+                ..Settings::default()
+            },
+        );
+        assert!(!state.begin_warming(true));
+        state.engine().expect("a capture still loads the engine");
+        assert!(state.is_ready());
     }
 
     /// A state over directories that hold nothing, so `engine()` falls through every
