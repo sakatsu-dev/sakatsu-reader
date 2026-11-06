@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/sakatsu-dev/sakatsu-reader/compare/v1.0.1...v1.0.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **dictionaries:** let older word dictionaries update, and make update notices quieter ([6259156](https://github.com/sakatsu-dev/sakatsu-reader/commit/6259156830aa9c8ef983f12dc7b7a3ae6069a3be))
+* **ocr:** let the reader turn off preloading the OCR engine ([876aa1c](https://github.com/sakatsu-dev/sakatsu-reader/commit/876aa1c22907471005db0ea44746ffdf61069742))
+
 ## [1.0.1](https://github.com/sakatsu-dev/sakatsu-reader/compare/v1.0.0...v1.0.1) (2026-11-04)
 
 
