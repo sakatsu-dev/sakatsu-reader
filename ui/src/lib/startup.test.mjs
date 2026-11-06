@@ -31,6 +31,14 @@ test("deferred Ichiran and missing OCR are not described as initialized", () => 
   assert.equal(rows[2].state, "deferred");
   assert.equal(rows[3].state, "attention");
 });
+test("OCR left unloaded by choice is deferred, and still flagged when it was meant to load", () => {
+  const engines = [engine("analysis"), engine("recognition", "not_loaded", null)];
+  const off = startupRows({ ...ready, ocrPreload: false, engines });
+  assert.equal(off[3].state, "deferred");
+  assert.equal(off[3].detail, "Starts on first capture");
+  assert.equal(startupRows({ ...ready, ocrPreload: true, engines })[3].state, "attention");
+  assert.equal(startupRows({ ...ready, engines })[3].state, "attention");
+});
 test("setup-required startup can reach setup without waiting for missing services", () => {
   const rows = startupRows({ ...ready, needsSetup: true, engines: null });
   assert.equal(rows.filter((row) => row.state === "loading").length, 0);

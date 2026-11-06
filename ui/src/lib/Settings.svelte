@@ -133,6 +133,7 @@
     quiet = $bindable(),
     ichiranServer = $bindable(),
     preloadIchiran = $bindable(),
+    preloadOcr = $bindable(true),
     checkUpdatesOnStartup = $bindable(true),
     oninstallupdate,
     logging = $bindable(),
@@ -210,6 +211,7 @@
     quiet: boolean;
     ichiranServer: boolean;
     preloadIchiran: boolean;
+    preloadOcr?: boolean;
     checkUpdatesOnStartup?: boolean;
     oninstallupdate: () => Promise<UpdateStatus>;
     logging: boolean;
@@ -2173,7 +2175,7 @@
         </div>
       </div>
 
-      <div class="block" hidden={!some(FIND.recognition.engine, FIND.recognition.loaded)}>
+      <div class="block" hidden={!some(FIND.recognition.engine, FIND.recognition.loaded, FIND.recognition.preload)}>
         <h4 class="subhead">Reading the screen</h4>
         <div class="cluster">
           <div class="item" hidden={!hit(FIND.recognition.engine)}>
@@ -2237,6 +2239,22 @@
                 </p>
               </details>
             {/if}
+          </div>
+
+          <div class="item" hidden={!hit(FIND.recognition.preload)}>
+            <label class="row">
+              <span>Preload OCR at startup</span>
+              <input type="checkbox" bind:checked={preloadOcr} />
+            </label>
+            <p class="note">Load the engine in the background for a quicker first capture. Off, it loads at your first capture.</p>
+            <details class="more">
+              <summary>More <span class="offscreen">about {FIND.recognition.preload.label}</span></summary>
+              <p>
+                PaddleOCR-VL's local service uses graphics memory; PP-OCRv6 and manga-ocr use ordinary
+                memory. Turn this off to read pasted or copied text with nothing loaded for capture.
+                An engine already loaded stays loaded; Unload from memory in Diagnostics releases it.
+              </p>
+            </details>
           </div>
         </div>
       </div>

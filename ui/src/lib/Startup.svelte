@@ -12,6 +12,7 @@
     needsSetup,
     settingsFailed = false,
     resourcesFailed = false,
+    ocrPreload = true,
     titlebarHeight = 32,
     animationMs = 250,
     oncontinue,
@@ -21,6 +22,7 @@
     needsSetup: boolean;
     settingsFailed?: boolean;
     resourcesFailed?: boolean;
+    ocrPreload?: boolean;
     titlebarHeight?: number;
     animationMs?: number;
     oncontinue: () => void;
@@ -45,6 +47,7 @@
       needsSetup,
       settingsFailed,
       resourcesFailed,
+      ocrPreload,
       engines: status?.engines ?? null,
       error,
     }),

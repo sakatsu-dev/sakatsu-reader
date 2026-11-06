@@ -11,7 +11,7 @@
 //! actually comes up is `vlm_setup`'s live test, and it needs the 1.8 GB model.
 
 use sakatsu_core::store::{OcrChoice, Settings};
-use sakatsu_desktop_lib::commands::{warm_ocr_in_the_background, OcrState};
+use sakatsu_desktop_lib::commands::{warm_ocr_in_the_background, warm_ocr_on_startup, OcrState};
 use std::time::{Duration, Instant};
 
 fn app(settings: &Settings) -> tauri::App<tauri::test::MockRuntime> {
@@ -88,4 +88,23 @@ fn the_in_process_engines_are_still_loaded_on_first_use() {
             "{choice:?} should still be loaded on first use, not at startup",
         );
     }
+}
+
+/// **With the preload off, nothing loads until a capture asks** — not at startup, and not
+/// after a settings save, even for the vision reader whose server takes graphics memory.
+#[test]
+fn a_disabled_preload_leaves_even_the_vision_reader_for_the_first_capture() {
+    let settings = Settings {
+        ocr: OcrChoice::Vlm,
+        vlm_endpoint: "http://127.0.0.1:1".into(),
+        vlm_model: "whatever".into(),
+        preload_ocr_on_startup: false,
+        ..Settings::default()
+    };
+    let app = app(&settings);
+    let state = tauri::Manager::state::<OcrState>(&app);
+
+    warm_ocr_on_startup(app.handle().clone());
+    warm_ocr_in_the_background(app.handle().clone());
+    assert!(!settled(&state), "neither warm-up should load the engine");
 }

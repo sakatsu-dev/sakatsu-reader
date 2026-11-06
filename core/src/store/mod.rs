@@ -282,6 +282,11 @@ pub struct Settings {
     /// Start Ichiran after the window opens. Missing older values inherit the enabled default.
     /// Independent of persistence: off defers all analyzer startup work until a reading intent.
     pub preload_ichiran_on_startup: bool,
+    /// Load the selected OCR engine after the window opens, and again when a settings change
+    /// selects a new one. Missing older values inherit the enabled default. Off, nothing loads
+    /// until a capture asks for it — which is what keeps PaddleOCR-VL's local server, the one
+    /// engine that takes graphics memory, from starting for a session that only reads text.
+    pub preload_ocr_on_startup: bool,
     /// Check release metadata daily; downloading and installing always require a choice.
     pub check_updates_on_startup: bool,
     /// Write a diagnostic log file. See [`crate::log`].
@@ -998,6 +1003,7 @@ impl Default for Settings {
             // installed a sidecar deliberately, and it changes latency rather than answers.
             ichiran_server: true,
             preload_ichiran_on_startup: true,
+            preload_ocr_on_startup: true,
             check_updates_on_startup: true,
             log: false,
             collect_sentences: false,
@@ -3212,6 +3218,7 @@ mod tests {
                 // round-trip even if `set_settings` dropped it entirely.
                 ichiran_server: false,
                 preload_ichiran_on_startup: false,
+                preload_ocr_on_startup: false,
                 check_updates_on_startup: false,
                 log: true,
                 collect_sentences: true,
@@ -3920,6 +3927,21 @@ mod startup_preload_tests {
         let old: Settings = serde_json::from_str("{}").unwrap();
         assert!(old.preload_ichiran_on_startup);
         assert!(Settings::default().preload_ichiran_on_startup);
+        assert!(old.preload_ocr_on_startup);
+        assert!(Settings::default().preload_ocr_on_startup);
+    }
+
+    #[test]
+    fn a_disabled_ocr_preload_survives_and_leaves_ichiran_alone() {
+        let settings: Settings =
+            serde_json::from_str(r#"{"preload_ocr_on_startup":false}"#).unwrap();
+        let restored: Settings =
+            serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
+        assert!(!restored.preload_ocr_on_startup);
+        assert!(
+            restored.preload_ichiran_on_startup,
+            "the two preloads are separate choices"
+        );
     }
 
     #[test]

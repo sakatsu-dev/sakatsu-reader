@@ -667,6 +667,8 @@ export type Settings = {
   ichiran_server: boolean;
   /** Start Ichiran in the background after the window opens. */
   preload_ichiran_on_startup: boolean;
+  /** Load the selected OCR engine in the background after the window opens. */
+  preload_ocr_on_startup: boolean;
   check_updates_on_startup: boolean;
   /** Write a diagnostic log file. */
   log: boolean;
