@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/sakatsu-dev/sakatsu-reader/compare/v1.0.2...v1.0.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **about:** link GitHub to the project repository and credit sakatsu-dev ([9748785](https://github.com/sakatsu-dev/sakatsu-reader/commit/9748785fb0d465f1a28a7188cd3e2338395a1de3))
+
 ## [1.0.2](https://github.com/sakatsu-dev/sakatsu-reader/compare/v1.0.1...v1.0.2) (2026-11-06)
 
 

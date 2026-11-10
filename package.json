@@ -2,7 +2,7 @@
   "name": "sakatsu",
   "private": true,
   "license": "GPL-3.0-only",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Workspace root. Exists so the Tauri CLI resolves the app directory to the project root no matter where it is invoked from — it picks the nearest package.json, and without this one it descends into ui/ and the before-commands resolve against the wrong directory.",
   "scripts": {
     "dev": "npm --prefix ui run dev",
