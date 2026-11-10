@@ -31,7 +31,11 @@
 
   /** The addresses `commands::creator_url` maps the same names to; `about.spec.ts` pins both. */
   const CREATOR_LINKS: readonly { destination: Destination; label: string; href: string }[] = [
-    { destination: "github", label: "GitHub", href: "https://github.com/S-0E51" },
+    {
+      destination: "github",
+      label: "GitHub",
+      href: "https://github.com/sakatsu-dev/sakatsu-reader",
+    },
     { destination: "kofi", label: "Support on Ko-fi", href: "https://ko-fi.com/sevennightmares" },
   ];
 
@@ -183,7 +187,7 @@
               <button class="control" type="button" onclick={onupdates}>Check for updates</button>
             </dd>
             <dt>Contributor</dt>
-            <dd class="byline">seven-nightmares</dd>
+            <dd class="byline">sakatsu-dev</dd>
           </dl>
 
           <section class="creator" aria-label="From the creator">

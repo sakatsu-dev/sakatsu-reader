@@ -665,7 +665,7 @@ pub fn open_notices<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(), S
 /// pins those and the test below pins these.
 fn creator_url(destination: &str) -> Result<&'static str, String> {
     match destination {
-        "github" => Ok("https://github.com/S-0E51"),
+        "github" => Ok("https://github.com/sakatsu-dev/sakatsu-reader"),
         "kofi" => Ok("https://ko-fi.com/sevennightmares"),
         other => Err(format!("there is no creator link called {other:?}")),
     }
@@ -700,7 +700,7 @@ mod creator_links {
 
     #[test]
     fn each_name_opens_exactly_its_page() {
-        assert_eq!(creator_url("github"), Ok("https://github.com/S-0E51"));
+        assert_eq!(creator_url("github"), Ok("https://github.com/sakatsu-dev/sakatsu-reader"));
         assert_eq!(creator_url("kofi"), Ok("https://ko-fi.com/sevennightmares"));
     }
 
@@ -711,7 +711,7 @@ mod creator_links {
             "",
             "GitHub",
             "ko-fi",
-            "https://github.com/S-0E51",
+            "https://github.com/sakatsu-dev/sakatsu-reader",
             "https://example.com",
             "file:///C:/Windows/System32/calc.exe",
         ] {
