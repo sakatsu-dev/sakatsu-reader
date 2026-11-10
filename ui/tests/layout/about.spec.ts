@@ -73,7 +73,7 @@ test("the identity card opens the page: name, purpose, version and contributor, 
       - text: 1.0.0
       - button "Check for updates"
     - term: Contributor
-    - definition: seven-nightmares
+    - definition: sakatsu-dev
   `);
   await expect(page.getByText("To be written")).toHaveCount(0);
   await expect(page.getByText("Links to come")).toHaveCount(0);
@@ -121,7 +121,7 @@ test("the creator links go to exactly their pages, safely, and are named by thei
   await about(page);
   const github = page.getByRole("link", { name: "GitHub", exact: true });
   const kofi = page.getByRole("link", { name: "Support on Ko-fi", exact: true });
-  await expect(github).toHaveAttribute("href", "https://github.com/S-0E51");
+  await expect(github).toHaveAttribute("href", "https://github.com/sakatsu-dev/sakatsu-reader");
   await expect(kofi).toHaveAttribute("href", "https://ko-fi.com/sevennightmares");
   for (const link of [github, kofi]) {
     await expect(link).toHaveAttribute("rel", "noreferrer noopener");
